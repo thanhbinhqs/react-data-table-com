@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { ColumnDef } from '@tanstack/react-table'
+import { ColumnDef, ColumnFiltersState } from '@tanstack/react-table'
 import { DataTable } from '@/components/DataTable'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -205,6 +205,14 @@ function App() {
     console.log('Row clicked:', row.original)
   }
 
+  const handleFilterApply = (filters: ColumnFiltersState) => {
+    console.log('Filters applied:', filters)
+  }
+
+  const handleClear = () => {
+    console.log('Filters cleared')
+  }
+
   return (
     <div className="container mx-auto py-8">
       <DataTable
@@ -214,6 +222,8 @@ function App() {
         searchable={true}
         filterable={true}
         onRowClick={handleRowClick}
+        onFilterApply={handleFilterApply}
+        onClear={handleClear}
       />
     </div>
   )

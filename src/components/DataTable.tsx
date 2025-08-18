@@ -37,6 +37,8 @@ export interface DataTableProps<TData> {
   title?: string
   className?: string
   onRowClick?: (row: Row<TData>) => void
+  onFilterApply?: (filters: ColumnFiltersState) => void
+  onClear?: () => void
 }
 
 interface FilterConfig {
@@ -54,6 +56,8 @@ export function DataTable<TData>({
   title,
   className,
   onRowClick,
+  onFilterApply,
+  onClear,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -96,12 +100,14 @@ export function DataTable<TData>({
       .map(([id, value]) => ({ id, value }))
     
     setColumnFilters(filters)
+    onFilterApply?.(filters)
   }
 
   const handleClearFilters = () => {
     setFilterValues({})
     setColumnFilters([])
     setGlobalFilter('')
+    onClear?.()
   }
 
   const handleFilterChange = (filterId: string, value: any) => {
