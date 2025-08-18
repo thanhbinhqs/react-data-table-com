@@ -556,7 +556,7 @@ export function DataTable<TData>({
 
       {/* Table Container - Scrollable */}
       <div className="flex-1 rounded-md border overflow-hidden relative">
-        <div className="h-full overflow-auto">
+        <div className="h-full overflow-auto" style={{ isolation: 'isolate' }}>
           {spin && (
             <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
               <div className="flex items-center gap-3 text-muted-foreground">
@@ -572,7 +572,7 @@ export function DataTable<TData>({
             }}
           >
             <thead className={cn(
-              "z-30 bg-background border-b shadow-sm",
+              "z-[60] bg-background border-b shadow-sm",
               sticky && "sticky top-0"
             )}>
               {table.getHeaderGroups().map((headerGroup) => (
@@ -590,7 +590,7 @@ export function DataTable<TData>({
                         key={header.id}
                         className={cn(
                           "relative h-12 px-4 text-left align-middle font-medium text-muted-foreground group border-r border-border/50 last:border-r-0 select-none",
-                          isPinned && sticky && "sticky z-40 bg-background shadow-sm border-l border-border/30",
+                          isPinned && sticky && "sticky z-[60] bg-background shadow-sm border-l border-border/30",
                           isPinned === 'left' && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]",
                           isPinned === 'right' && "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.15)]"
                         )}
@@ -770,7 +770,8 @@ export function DataTable<TData>({
                           key={cell.id} 
                           className={cn(
                             "p-4 align-middle border-r border-border/30 last:border-r-0 group-hover:bg-muted/50",
-                            isPinned && sticky && "sticky z-20 bg-background border-l border-border/20 group-hover:bg-muted/60 focus-within:z-30 focus-within:bg-background",
+                            isPinned && sticky && "sticky z-40 bg-background border-l border-border/20 group-hover:bg-muted/60",
+                            isPinned && sticky && "focus-within:z-[60] focus-within:bg-background focus-within:shadow-lg",
                             isPinned === 'left' && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]",
                             isPinned === 'right' && "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.1)]",
                             selectable && cell.column.id !== 'select' && cell.column.id !== 'rowNumber' && "cursor-pointer"
