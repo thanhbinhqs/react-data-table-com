@@ -192,9 +192,9 @@ export function DataTable<TData>({
         enableHiding: false,
         enableResizing: false,
         enablePinning: false, // Disable pinning since it's always pinned left
-        size: 50,
-        minSize: 50,
-        maxSize: 50,
+        size: 40,
+        minSize: 40,
+        maxSize: 40,
       }
       extraColumns.push(selectionColumn)
     }
@@ -208,7 +208,7 @@ export function DataTable<TData>({
         const filteredRows = table.getFilteredRowModel().rows
         const index = filteredRows.findIndex(r => r.id === row.id)
         return (
-          <div className="text-center text-muted-foreground font-mono text-sm whitespace-nowrap overflow-hidden text-ellipsis">
+          <div className="text-center text-muted-foreground font-mono text-xs whitespace-nowrap overflow-hidden text-ellipsis">
             {index + 1}
           </div>
         )
@@ -218,9 +218,9 @@ export function DataTable<TData>({
       enableResizing: false,
       enableColumnFilter: false,
       enablePinning: false, // Disable pinning since it's always pinned left
-      size: 60,
-      minSize: 60,
-      maxSize: 60,
+      size: 50,
+      minSize: 50,
+      maxSize: 50,
     }
     extraColumns.push(rowNumberColumn)
 
@@ -250,9 +250,9 @@ export function DataTable<TData>({
     columnResizeMode,
     columnResizeDirection: 'ltr',
     defaultColumn: {
-      minSize: 50,
-      maxSize: 800,
-      size: 150,
+      minSize: 40,
+      maxSize: 600,
+      size: 120,
     },
     state: {
       sorting,
@@ -315,10 +315,10 @@ export function DataTable<TData>({
   return (
     <div className={cn('flex flex-col h-full', className)}>
       {/* Header Section - Fixed */}
-      <div className="flex items-center justify-between pb-4 flex-shrink-0">
-        <div className="space-y-1">
-          {title && <h2 className="text-2xl font-bold tracking-tight">{title}</h2>}
-          <p className="text-sm text-muted-foreground">
+      <div className="flex items-center justify-between pb-2 flex-shrink-0">
+        <div className="space-y-0.5">
+          {title && <h2 className="text-lg font-bold tracking-tight">{title}</h2>}
+          <p className="text-xs text-muted-foreground">
             {table.getFilteredRowModel().rows.length} of {data.length} row(s)
             {selectable && Object.keys(rowSelection).length > 0 && (
               <span className="ml-2 text-primary">
@@ -332,22 +332,22 @@ export function DataTable<TData>({
         <div className="flex items-center gap-2">
           {/* Global Search */}
           {searchable && (
-            <div className="relative w-64">
-              <MagnifyingGlass className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <div className="relative w-56">
+              <MagnifyingGlass className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search all columns..."
                 value={globalFilter}
                 onChange={(e) => setGlobalFilter(e.target.value)}
-                className="pl-9"
+                className="pl-7 h-7 text-xs"
               />
               {globalFilter && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 p-0"
+                  className="absolute right-0.5 top-1/2 h-5 w-5 -translate-y-1/2 p-0"
                   onClick={() => setGlobalFilter('')}
                 >
-                  <X className="h-3 w-3" />
+                  <X className="h-2 w-2" />
                 </Button>
               )}
             </div>
@@ -355,11 +355,12 @@ export function DataTable<TData>({
 
           {/* Selection Actions */}
           {selectable && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => table.toggleAllRowsSelected()}
+                className="h-7 text-xs"
               >
                 {table.getIsAllRowsSelected() ? 'Deselect All' : 'Select All'}
               </Button>
@@ -368,6 +369,7 @@ export function DataTable<TData>({
                   variant="outline"
                   size="sm"
                   onClick={() => setRowSelection({})}
+                  className="h-7 text-xs"
                 >
                   Clear Selection
                 </Button>
@@ -378,8 +380,8 @@ export function DataTable<TData>({
           {/* Column Visibility and Pinning Toggle */}
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Eye className="h-4 w-4 mr-2" />
+              <Button variant="outline" size="sm" className="h-7 text-xs">
+                <Eye className="h-3 w-3 mr-1" />
                 Columns
               </Button>
             </SheetTrigger>
@@ -507,11 +509,11 @@ export function DataTable<TData>({
           {filterable && filterConfigs.length > 0 && (
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <FunnelSimple className="h-4 w-4 mr-2" />
+                <Button variant="outline" size="sm" className="h-7 text-xs">
+                  <FunnelSimple className="h-3 w-3 mr-1" />
                   Filters
                   {columnFilters.length > 0 && (
-                    <span className="ml-2 rounded-full bg-primary px-2 py-1 text-xs text-primary-foreground">
+                    <span className="ml-1 rounded-full bg-primary px-1.5 py-0.5 text-xs text-primary-foreground">
                       {columnFilters.length}
                     </span>
                   )}
@@ -590,7 +592,7 @@ export function DataTable<TData>({
                       <th
                         key={header.id}
                         className={cn(
-                          "relative h-12 px-4 text-left align-middle font-medium text-muted-foreground group border-r border-border/50 last:border-r-0 select-none",
+                          "relative h-8 px-2 text-left align-middle font-medium text-muted-foreground group border-r border-border/50 last:border-r-0 select-none text-xs",
                           isPinned && sticky && "sticky z-[70] bg-background/100 shadow-sm border-l border-border/30",
                           isPinned === 'left' && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]",
                           isPinned === 'right' && "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.15)]"
@@ -619,7 +621,7 @@ export function DataTable<TData>({
                                 <div className="flex flex-col flex-shrink-0">
                                   <CaretUp 
                                     className={cn(
-                                      'h-3 w-3 transition-colors',
+                                      'h-2 w-2 transition-colors',
                                       header.column.getIsSorted() === 'asc' 
                                         ? 'text-foreground' 
                                         : 'text-muted-foreground/50'
@@ -627,7 +629,7 @@ export function DataTable<TData>({
                                   />
                                   <CaretDown 
                                     className={cn(
-                                      'h-3 w-3 -mt-1 transition-colors',
+                                      'h-2 w-2 -mt-0.5 transition-colors',
                                       header.column.getIsSorted() === 'desc' 
                                         ? 'text-foreground' 
                                         : 'text-muted-foreground/50'
@@ -641,7 +643,7 @@ export function DataTable<TData>({
                           {/* Pin indicator - Hide for selection and row number columns */}
                           {isPinned && header.column.id !== 'select' && header.column.id !== 'rowNumber' && (
                             <PushPin className={cn(
-                              "h-3 w-3 text-primary flex-shrink-0",
+                              "h-2 w-2 text-primary flex-shrink-0",
                               isPinned === 'right' && "rotate-90"
                             )} />
                           )}
@@ -650,7 +652,7 @@ export function DataTable<TData>({
                         {/* Column Resizer */}
                         {header.column.getCanResize() && (
                           <div
-                            className="absolute right-0 top-0 h-full w-3 cursor-col-resize bg-transparent hover:bg-primary/20 active:bg-primary/40 transition-all duration-150"
+                            className="absolute right-0 top-0 h-full w-2 cursor-col-resize bg-transparent hover:bg-primary/20 active:bg-primary/40 transition-all duration-150"
                             style={{
                               transform: header.column.getIsResizing() ? 'scaleX(1.5)' : undefined,
                               userSelect: 'none',
@@ -667,13 +669,13 @@ export function DataTable<TData>({
                               const columnId = column.id
                               
                               // Calculate the maximum content width for this column
-                              let maxWidth = 50 // minimum width
+                              let maxWidth = 40 // minimum width
                               
                               // Check header text width
                               const headerText = typeof column.columnDef.header === 'string' 
                                 ? column.columnDef.header 
                                 : columnId
-                              maxWidth = Math.max(maxWidth, headerText.length * 8 + 60) // approximate char width + padding
+                              maxWidth = Math.max(maxWidth, headerText.length * 6 + 40) // approximate char width + padding
                               
                               // Check all visible row content widths
                               const rows = table.getFilteredRowModel().rows
@@ -701,14 +703,14 @@ export function DataTable<TData>({
                                     cellText = '999' // assume max 3 digits for numbering
                                   }
                                   
-                                  const contentWidth = cellText.length * 8 + 32 // approximate char width + padding
+                                  const contentWidth = cellText.length * 6 + 20 // approximate char width + padding
                                   maxWidth = Math.max(maxWidth, contentWidth)
                                 }
                               })
                               
                               // Apply size constraints from column definition
-                              const minSize = column.columnDef.minSize || 50
-                              const maxSize = column.columnDef.maxSize || 800
+                              const minSize = column.columnDef.minSize || 40
+                              const maxSize = column.columnDef.maxSize || 600
                               const finalWidth = Math.min(Math.max(maxWidth, minSize), maxSize)
                               
                               // Update column sizing using the table's setter
@@ -720,7 +722,7 @@ export function DataTable<TData>({
                             title="Drag to resize • Double-click to auto-fit"
                           >
                             {/* Visual indicator for resize handle */}
-                            <div className="absolute right-1 top-1/2 transform -translate-y-1/2 w-0.5 h-6 bg-border/60 group-hover:bg-primary/60 transition-colors" />
+                            <div className="absolute right-0.5 top-1/2 transform -translate-y-1/2 w-0.5 h-4 bg-border/60 group-hover:bg-primary/60 transition-colors" />
                           </div>
                         )}
                       </th>
@@ -772,7 +774,7 @@ export function DataTable<TData>({
                         <td 
                           key={cell.id} 
                           className={cn(
-                            "p-4 align-middle border-r border-border/30 last:border-r-0",
+                            "px-2 py-1 align-middle border-r border-border/30 last:border-r-0",
                             // Base hover styles for non-pinned columns
                             !isPinned && "group-hover:bg-muted/50",
                             // Pinned column styles with higher z-index and solid background
@@ -803,7 +805,7 @@ export function DataTable<TData>({
                             }
                           }}
                         >
-                          <div className="truncate text-sm leading-none py-1 whitespace-nowrap overflow-hidden text-ellipsis">
+                          <div className="truncate text-xs leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                           </div>
                         </td>

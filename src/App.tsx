@@ -134,9 +134,9 @@ function App() {
       enableColumnFilter: true,
       enableResizing: true,
       enablePinning: true,
-      size: 200,
-      minSize: 100,
-      maxSize: 1400,
+      size: 140,
+      minSize: 80,
+      maxSize: 300,
     },
     {
       id: 'email',
@@ -146,9 +146,9 @@ function App() {
       enableColumnFilter: true,
       enableResizing: true,
       enablePinning: true,
-      size: 250,
-      minSize: 150,
-      maxSize: 1400,
+      size: 180,
+      minSize: 120,
+      maxSize: 350,
     },
     {
       id: 'role',
@@ -158,9 +158,9 @@ function App() {
       enableColumnFilter: true,
       enableResizing: true,
       enablePinning: true,
-      size: 180,
-      minSize: 120,
-      maxSize: 300,
+      size: 130,
+      minSize: 90,
+      maxSize: 250,
     },
     {
       id: 'department',
@@ -170,9 +170,9 @@ function App() {
       enableColumnFilter: true,
       enableResizing: true,
       enablePinning: true,
-      size: 150,
-      minSize: 100,
-      maxSize: 250,
+      size: 110,
+      minSize: 80,
+      maxSize: 200,
     },
     {
       id: 'status',
@@ -182,9 +182,9 @@ function App() {
       enableColumnFilter: true,
       enableResizing: true,
       enablePinning: true,
-      size: 120,
-      minSize: 80,
-      maxSize: 150,
+      size: 90,
+      minSize: 70,
+      maxSize: 120,
       cell: ({ getValue }) => {
         const status = getValue() as string
         return (
@@ -194,6 +194,7 @@ function App() {
               status === 'inactive' ? 'destructive' : 
               'secondary'
             }
+            className="text-xs px-1.5 py-0.5"
           >
             {status}
           </Badge>
@@ -208,9 +209,9 @@ function App() {
       enableColumnFilter: true,
       enableResizing: true,
       enablePinning: true,
-      size: 130,
-      minSize: 100,
-      maxSize: 180,
+      size: 100,
+      minSize: 80,
+      maxSize: 140,
       cell: ({ getValue }) => {
         const date = getValue() as string
         return new Date(date).toLocaleDateString()
@@ -223,17 +224,18 @@ function App() {
       enableColumnFilter: false,
       enableResizing: false,
       enablePinning: true,
-      size: 80,
+      size: 70,
       cell: ({ row }) => (
         <Button 
           variant="ghost" 
           size="sm"
+          className="h-6 w-6 p-0"
           onClick={(e) => {
             e.stopPropagation()
             alert(`View details for ${row.original.name}`)
           }}
         >
-          <Eye className="h-4 w-4" />
+          <Eye className="h-3 w-3" />
         </Button>
       ),
     },
@@ -265,21 +267,22 @@ function App() {
   return (
     <div className="h-screen flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="bg-primary text-primary-foreground px-6 py-4 shadow-sm flex-shrink-0">
+      <header className="bg-primary text-primary-foreground px-4 py-2 shadow-sm flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">Advanced Data Table</h1>
-            <p className="text-primary-foreground/80 text-sm mt-1">
+            <h1 className="text-lg font-semibold">Advanced Data Table</h1>
+            <p className="text-primary-foreground/80 text-xs">
               Manage and analyze your data with powerful filtering and sorting
             </p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={simulateLoading}
                 disabled={isLoading}
+                className="text-xs h-7"
               >
                 {isLoading ? 'Loading...' : 'Simulate Loading'}
               </Button>
@@ -289,12 +292,12 @@ function App() {
                   checked={stickyHeader}
                   onCheckedChange={setStickyHeader}
                 />
-                <Label htmlFor="sticky-toggle" className="text-sm">
+                <Label htmlFor="sticky-toggle" className="text-xs">
                   Sticky Header
                 </Label>
               </div>
             </div>
-            <span className="text-sm text-primary-foreground/80">
+            <span className="text-xs text-primary-foreground/80">
               {sampleUsers.length} total users
             </span>
           </div>
@@ -302,7 +305,7 @@ function App() {
       </header>
 
       {/* Main Content - DataTable takes remaining space */}
-      <main className="flex-1 p-6 overflow-hidden">
+      <main className="flex-1 p-1 overflow-hidden">
         <DataTable
           data={sampleUsers}
           columns={columns}
