@@ -1,11 +1,11 @@
 import { useMemo, useCallback, useState } from 'react'
 import { ColumnDef, ColumnFiltersState } from '@tanstack/react-table'
-import { DataTable } from '@/components/DataTable'
+import { DataTable, RowAction, RowActionGroup } from '@/components/DataTable'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { Eye } from '@phosphor-icons/react'
+import { Eye, PencilSimple, Trash, UserCheck, UserX, Copy } from '@phosphor-icons/react'
 
 interface User {
   id: string
@@ -134,7 +134,7 @@ function App() {
       enableColumnFilter: true,
       enableResizing: true,
       enablePinning: true,
-      size: 140,
+      size: 120,
       minSize: 80,
       maxSize: 300,
     },
@@ -146,7 +146,7 @@ function App() {
       enableColumnFilter: true,
       enableResizing: true,
       enablePinning: true,
-      size: 180,
+      size: 160,
       minSize: 120,
       maxSize: 350,
     },
@@ -158,7 +158,7 @@ function App() {
       enableColumnFilter: true,
       enableResizing: true,
       enablePinning: true,
-      size: 130,
+      size: 110,
       minSize: 90,
       maxSize: 250,
     },
@@ -170,7 +170,7 @@ function App() {
       enableColumnFilter: true,
       enableResizing: true,
       enablePinning: true,
-      size: 110,
+      size: 90,
       minSize: 80,
       maxSize: 200,
     },
@@ -182,7 +182,7 @@ function App() {
       enableColumnFilter: true,
       enableResizing: true,
       enablePinning: true,
-      size: 90,
+      size: 70,
       minSize: 70,
       maxSize: 120,
       cell: ({ getValue }) => {
@@ -194,7 +194,7 @@ function App() {
               status === 'inactive' ? 'destructive' : 
               'secondary'
             }
-            className="text-xs px-1.5 py-0.5"
+            className="text-xs px-1 py-0"
           >
             {status}
           </Badge>
@@ -209,7 +209,7 @@ function App() {
       enableColumnFilter: true,
       enableResizing: true,
       enablePinning: true,
-      size: 100,
+      size: 90,
       minSize: 80,
       maxSize: 140,
       cell: ({ getValue }) => {
@@ -217,28 +217,69 @@ function App() {
         return new Date(date).toLocaleDateString()
       },
     },
+  ], [])
+
+  // Row actions configuration
+  const rowActions = useMemo<RowActionGroup<User>[]>(() => [
     {
-      id: 'actions',
-      header: 'Actions',
-      enableSorting: false,
-      enableColumnFilter: false,
-      enableResizing: false,
-      enablePinning: true,
-      size: 70,
-      cell: ({ row }) => (
-        <Button 
-          variant="ghost" 
-          size="sm"
-          className="h-6 w-6 p-0"
-          onClick={(e) => {
-            e.stopPropagation()
-            alert(`View details for ${row.original.name}`)
-          }}
-        >
-          <Eye className="h-3 w-3" />
-        </Button>
-      ),
+      label: 'Actions',
+      actions: [
+        {
+          label: 'View Details',
+          icon: Eye,
+          onClick: (user) => {
+            alert(`View details for ${user.name}`)
+          },
+        },
+        {
+          label: 'Edit User',
+          icon: PencilSimple,
+          onClick: (user) => {
+            alert(`Edit user: ${user.name}`)
+          },
+        },
+        {
+          label: 'Copy Email',
+          icon: Copy,
+          onClick: (user) => {
+            navigator.clipboard.writeText(user.email)
+            alert(`Copied email: ${user.email}`)
+          },
+        },
+      ]
     },
+    {
+      label: 'Status Actions',
+      actions: [
+        {
+          label: 'Activate',
+          icon: UserCheck,
+          onClick: (user) => {
+            alert(`Activating user: ${user.name}`)
+          },
+          hidden: (user) => user.status === 'active',
+        },
+        {
+          label: 'Deactivate',
+          icon: UserX,
+          onClick: (user) => {
+            alert(`Deactivating user: ${user.name}`)
+          },
+          hidden: (user) => user.status !== 'active',
+        },
+        {
+          label: 'Delete User',
+          icon: Trash,
+          variant: 'destructive',
+          onClick: (user) => {
+            if (confirm(`Are you sure you want to delete ${user.name}?`)) {
+              alert(`Deleted user: ${user.name}`)
+            }
+          },
+          disabled: (user) => user.role === 'Manager', // Managers cannot be deleted
+        },
+      ]
+    }
   ], [])
 
   const handleRowClick = useCallback((row: any) => {
@@ -319,6 +360,7 @@ function App() {
           onSelectionChange={handleSelectionChange}
           spin={isLoading}
           sticky={stickyHeader}
+          rowActions={rowActions}
         />
       </main>
     </div>

@@ -99,9 +99,32 @@ import {
   ArrowsOutCardinal,
   PushPin,
   PushPinSlash,
-  CircleNotch
+  CircleNotch,
+  DotsThree
 } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+
+export interface RowAction<TData> {
+  label: string
+  icon?: React.ComponentType<any>
+  onClick: (row: TData) => void
+  variant?: 'default' | 'destructive'
+  disabled?: (row: TData) => boolean
+  hidden?: (row: TData) => boolean
+}
+
+export interface RowActionGroup<TData> {
+  label?: string
+  actions: RowAction<TData>[]
+}
 
 export interface DataTableProps<TData> {
   data: TData[]
@@ -117,6 +140,7 @@ export interface DataTableProps<TData> {
   sticky?: boolean
   selectable?: boolean
   onSelectionChange?: (selectedRows: TData[]) => void
+  rowActions?: RowAction<TData>[] | RowActionGroup<TData>[]
 }
 
 interface FilterConfig {
@@ -140,6 +164,7 @@ export function DataTable<TData>({
   sticky = true,
   selectable = false,
   onSelectionChange,
+  rowActions,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -192,9 +217,9 @@ export function DataTable<TData>({
         enableHiding: false,
         enableResizing: false,
         enablePinning: false, // Disable pinning since it's always pinned left
-        size: 40,
-        minSize: 40,
-        maxSize: 40,
+        size: 32,
+        minSize: 32,
+        maxSize: 32,
       }
       extraColumns.push(selectionColumn)
     }
@@ -218,14 +243,134 @@ export function DataTable<TData>({
       enableResizing: false,
       enableColumnFilter: false,
       enablePinning: false, // Disable pinning since it's always pinned left
-      size: 50,
-      minSize: 50,
-      maxSize: 50,
+      size: 40,
+      minSize: 40,
+      maxSize: 40,
     }
     extraColumns.push(rowNumberColumn)
 
+    // Add row actions column if rowActions are provided
+    if (rowActions && rowActions.length > 0) {
+      const rowActionsColumn: ColumnDef<TData> = {
+        id: 'rowActions',
+        header: '',
+        cell: ({ row }) => {
+          const isGrouped = rowActions.some((action: any) => 'actions' in action)
+          
+          if (isGrouped) {
+            const groups = rowActions as RowActionGroup<TData>[]
+            return (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className="h-5 w-5 p-0 hover:bg-muted"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <DotsThree className="h-3 w-3" />
+                    <span className="sr-only">Open menu</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  {groups.map((group, groupIndex) => (
+                    <div key={groupIndex}>
+                      {group.label && (
+                        <DropdownMenuLabel>{group.label}</DropdownMenuLabel>
+                      )}
+                      {group.actions.map((action, actionIndex) => {
+                        const isHidden = action.hidden?.(row.original) || false
+                        const isDisabled = action.disabled?.(row.original) || false
+                        
+                        if (isHidden) return null
+                        
+                        const IconComponent = action.icon
+                        
+                        return (
+                          <DropdownMenuItem
+                            key={actionIndex}
+                            variant={action.variant}
+                            disabled={isDisabled}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (!isDisabled) {
+                                action.onClick(row.original)
+                              }
+                            }}
+                            className="cursor-pointer"
+                          >
+                            {IconComponent && <IconComponent className="h-4 w-4" />}
+                            {action.label}
+                          </DropdownMenuItem>
+                        )
+                      })}
+                      {groupIndex < groups.length - 1 && <DropdownMenuSeparator />}
+                    </div>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )
+          } else {
+            const actions = rowActions as RowAction<TData>[]
+            return (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className="h-5 w-5 p-0 hover:bg-muted"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <DotsThree className="h-3 w-3" />
+                    <span className="sr-only">Open menu</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  {actions.map((action, actionIndex) => {
+                    const isHidden = action.hidden?.(row.original) || false
+                    const isDisabled = action.disabled?.(row.original) || false
+                    
+                    if (isHidden) return null
+                    
+                    const IconComponent = action.icon
+                    
+                    return (
+                      <DropdownMenuItem
+                        key={actionIndex}
+                        variant={action.variant}
+                        disabled={isDisabled}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (!isDisabled) {
+                            action.onClick(row.original)
+                          }
+                        }}
+                        className="cursor-pointer"
+                      >
+                        {IconComponent && <IconComponent className="h-4 w-4" />}
+                        {action.label}
+                      </DropdownMenuItem>
+                    )
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )
+          }
+        },
+        enableSorting: false,
+        enableHiding: false,
+        enableResizing: false,
+        enableColumnFilter: false,
+        enablePinning: true,
+        size: 32,
+        minSize: 32,
+        maxSize: 32,
+      }
+      extraColumns.push(rowActionsColumn)
+    }
+
     return [...extraColumns, ...columns]
-  }, [columns, selectable])
+  }, [columns, selectable, rowActions])
 
   const table = useReactTable({
     data,
@@ -258,15 +403,27 @@ export function DataTable<TData>({
       sorting,
       columnFilters,
       columnVisibility,
-      columnPinning: selectable 
-        ? { 
-            ...columnPinning,
-            left: ['select', 'rowNumber', ...(columnPinning.left || []).filter(id => id !== 'select' && id !== 'rowNumber')] 
-          } // Always pin selection and rowNumber columns to left, preserve other left pins
-        : { 
-            ...columnPinning,
-            left: ['rowNumber', ...(columnPinning.left || []).filter(id => id !== 'rowNumber')] 
-          }, // Always pin rowNumber column to left
+      columnPinning: (() => {
+        const leftPinnedColumns = selectable 
+          ? ['select', 'rowNumber']
+          : ['rowNumber']
+        
+        const rightPinnedColumns = rowActions && rowActions.length > 0 
+          ? ['rowActions']
+          : []
+        
+        return {
+          ...columnPinning,
+          left: [
+            ...leftPinnedColumns, 
+            ...(columnPinning.left || []).filter(id => !leftPinnedColumns.includes(id))
+          ],
+          right: [
+            ...rightPinnedColumns,
+            ...(columnPinning.right || []).filter(id => !rightPinnedColumns.includes(id))
+          ]
+        }
+      })(),
       rowSelection,
       globalFilter,
       columnSizing,
@@ -592,7 +749,7 @@ export function DataTable<TData>({
                       <th
                         key={header.id}
                         className={cn(
-                          "relative h-8 px-2 text-left align-middle font-medium text-muted-foreground group border-r border-border/50 last:border-r-0 select-none text-xs",
+                          "relative h-6 px-2 text-left align-middle font-medium text-muted-foreground group border-r border-border/50 last:border-r-0 select-none text-xs",
                           isPinned && sticky && "sticky z-[70] bg-background/100 shadow-sm border-l border-border/30",
                           isPinned === 'left' && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]",
                           isPinned === 'right' && "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.15)]"
@@ -774,7 +931,7 @@ export function DataTable<TData>({
                         <td 
                           key={cell.id} 
                           className={cn(
-                            "px-2 py-1 align-middle border-r border-border/30 last:border-r-0",
+                            "px-2 py-0.5 align-middle border-r border-border/30 last:border-r-0",
                             // Base hover styles for non-pinned columns
                             !isPinned && "group-hover:bg-muted/50",
                             // Pinned column styles with higher z-index and solid background
@@ -805,7 +962,7 @@ export function DataTable<TData>({
                             }
                           }}
                         >
-                          <div className="truncate text-xs leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
+                          <div className="truncate text-xs leading-none whitespace-nowrap overflow-hidden text-ellipsis">
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                           </div>
                         </td>
