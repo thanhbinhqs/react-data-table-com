@@ -120,6 +120,7 @@ import {
   ContextMenuShortcut,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
+import { AdvancedFilter, AdvancedFilterConfig, FilterValues } from './AdvancedFilter'
 
 export interface RowAction<TData> {
   label: string
@@ -164,6 +165,7 @@ export interface DataTableProps<TData> {
   columns: ColumnDef<TData>[]
   searchable?: boolean
   filterable?: boolean
+  filterConfigs?: AdvancedFilterConfig[]
   title?: string
   className?: string
   onRowClick?: (row: Row<TData>) => void
@@ -190,6 +192,7 @@ export function DataTable<TData>({
   columns,
   searchable = true,
   filterable = true,
+  filterConfigs,
   title,
   className,
   onRowClick,
@@ -210,6 +213,7 @@ export function DataTable<TData>({
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [globalFilter, setGlobalFilter] = useState('')
   const [filterValues, setFilterValues] = useState<Record<string, any>>({})
+  const [advancedFilterValues, setAdvancedFilterValues] = useState<FilterValues>({})
   const [columnResizeMode] = useState<ColumnResizeMode>('onChange')
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({})
 
@@ -306,16 +310,20 @@ export function DataTable<TData>({
     }
   }
 
-  // Generate filter configs from columns
-  const filterConfigs = useMemo(() => {
+  // Use provided filter configs or generate from columns
+  const effectiveFilterConfigs = useMemo(() => {
+    if (filterConfigs && filterConfigs.length > 0) {
+      return filterConfigs
+    }
+    
     return columns
       .filter(col => col.id && col.enableColumnFilter !== false)
       .map(col => ({
         id: col.id as string,
+        type: 'text' as const,
         label: typeof col.header === 'string' ? col.header : col.id as string,
-        type: 'text' as const, // Default to text, can be enhanced
       }))
-  }, [columns])
+  }, [columns, filterConfigs])
 
   // Create columns with selection and row number columns
   const tableColumns = useMemo(() => {
@@ -506,12 +514,83 @@ export function DataTable<TData>({
     return [...extraColumns, ...columns]
   }, [columns, selectable, rowActions])
 
+  // Custom filter functions for different data types
+  const globalFilterFn = (row: any, columnId: string, value: any) => {
+    const cellValue = row.getValue(columnId)
+    if (cellValue == null) return false
+    
+    return String(cellValue).toLowerCase().includes(String(value).toLowerCase())
+  }
+
+  const multiSelectFilter = (row: any, columnId: string, filterValues: string[]) => {
+    const cellValue = row.getValue(columnId)
+    if (cellValue == null) return false
+    
+    return filterValues.includes(String(cellValue))
+  }
+
+  const dateFilter = (row: any, columnId: string, filterDate: string) => {
+    const cellValue = row.getValue(columnId)
+    if (cellValue == null) return false
+    
+    const cellDate = new Date(cellValue).toDateString()
+    const targetDate = new Date(filterDate).toDateString()
+    
+    return cellDate === targetDate
+  }
+
+  const dateRangeFilter = (row: any, columnId: string, dateRange: any) => {
+    const cellValue = row.getValue(columnId)
+    if (cellValue == null) return false
+    
+    const cellDate = new Date(cellValue)
+    const { from, to } = dateRange
+    
+    if (from && to) {
+      return cellDate >= from && cellDate <= to
+    } else if (from) {
+      return cellDate >= from
+    } else if (to) {
+      return cellDate <= to
+    }
+    
+    return true
+  }
+
   const table = useReactTable({
     data,
     columns: tableColumns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    filterFns: {
+      multiselect: (row, columnId, filterValues) => {
+        const cellValue = row.getValue(columnId)
+        if (cellValue == null) return false
+        return filterValues.includes(String(cellValue))
+      },
+      dateFilter: (row, columnId, filterDate) => {
+        const cellValue = row.getValue(columnId)
+        if (cellValue == null) return false
+        const cellDate = new Date(cellValue).toDateString()
+        const targetDate = new Date(filterDate).toDateString()
+        return cellDate === targetDate
+      },
+      dateRange: (row, columnId, dateRange) => {
+        const cellValue = row.getValue(columnId)
+        if (cellValue == null) return false
+        const cellDate = new Date(cellValue)
+        const { from, to } = dateRange
+        if (from && to) {
+          return cellDate >= from && cellDate <= to
+        } else if (from) {
+          return cellDate >= from
+        } else if (to) {
+          return cellDate <= to
+        }
+        return true
+      },
+    },
     getRowId: (row, index) => {
       // Use id field if available, otherwise use index
       return (row as any).id?.toString() || index.toString()
@@ -579,6 +658,80 @@ export function DataTable<TData>({
 
   // Check if any column is currently being resized
   const isResizing = table.getAllColumns().some(col => col.getIsResizing())
+
+  // Handle advanced filter application
+  const handleAdvancedFilterApply = (filterValues: FilterValues) => {
+    setAdvancedFilterValues(filterValues)
+    
+    // Convert advanced filter values to column filters
+    const filters: ColumnFiltersState = []
+    
+    Object.entries(filterValues).forEach(([configId, value]) => {
+      if (!value) return
+      
+      const config = effectiveFilterConfigs.find(c => c.id === configId)
+      if (!config) return
+      
+      switch (config.type) {
+        case 'text':
+          if (value.text && value.text.trim()) {
+            filters.push({ id: configId, value: value.text })
+          }
+          break
+        case 'number':
+          if (value.number !== undefined && value.number !== null) {
+            filters.push({ id: configId, value: value.number })
+          }
+          break
+        case 'select':
+          if (value.select) {
+            filters.push({ id: configId, value: value.select })
+          }
+          break
+        case 'multiselect':
+          if (value.multiselect && value.multiselect.length > 0) {
+            filters.push({ 
+              id: configId, 
+              value: value.multiselect,
+              // @ts-ignore - custom filter function
+              filterFn: 'multiselect'
+            })
+          }
+          break
+        case 'date':
+          if (value.date) {
+            filters.push({ 
+              id: configId, 
+              value: value.date.toISOString(),
+              // @ts-ignore - custom filter function  
+              filterFn: 'dateFilter'
+            })
+          }
+          break
+        case 'daterange':
+          if (value.daterange && (value.daterange.from || value.daterange.to)) {
+            filters.push({ 
+              id: configId, 
+              value: value.daterange,
+              // @ts-ignore - custom filter function
+              filterFn: 'dateRange'
+            })
+          }
+          break
+      }
+    })
+    
+    setColumnFilters(filters)
+    onFilterApply?.(filters)
+  }
+
+  // Handle advanced filter clear
+  const handleAdvancedFilterClear = () => {
+    setAdvancedFilterValues({})
+    setColumnFilters([])
+    setGlobalFilter('')
+    onClear?.()
+  }
 
   const handleApplyFilters = () => {
     const filters = Object.entries(filterValues)
@@ -797,7 +950,7 @@ export function DataTable<TData>({
           </Sheet>
 
           {/* Filter Sidebar */}
-          {filterable && filterConfigs.length > 0 && (
+          {filterable && effectiveFilterConfigs.length > 0 && (
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="outline" size="sm" className="h-7 text-xs">
@@ -815,32 +968,13 @@ export function DataTable<TData>({
                   <SheetTitle>Filter Data</SheetTitle>
                 </SheetHeader>
                 
-                <div className="space-y-6 pt-6">
-                  {filterConfigs.map((config) => (
-                    <div key={config.id} className="space-y-2">
-                      <Label htmlFor={config.id} className="text-sm font-medium">
-                        {config.label}
-                      </Label>
-                      <Input
-                        id={config.id}
-                        placeholder={`Filter by ${config.label.toLowerCase()}...`}
-                        value={filterValues[config.id] || ''}
-                        onChange={(e) => handleFilterChange(config.id, e.target.value)}
-                      />
-                    </div>
-                  ))}
-                  
-                  <Separator />
-                  
-                  <div className="flex gap-2">
-                    <Button onClick={handleApplyFilters} className="flex-1">
-                      Apply Filters
-                    </Button>
-                    <Button variant="outline" onClick={handleClearFilters} className="flex-1">
-                      Clear All
-                    </Button>
-                  </div>
-                </div>
+                <AdvancedFilter
+                  configs={effectiveFilterConfigs}
+                  values={advancedFilterValues}
+                  onApply={handleAdvancedFilterApply}
+                  onClear={handleAdvancedFilterClear}
+                  className="pt-6"
+                />
               </SheetContent>
             </Sheet>
           )}

@@ -1,11 +1,12 @@
 import { useMemo, useCallback, useState } from 'react'
 import { ColumnDef, ColumnFiltersState } from '@tanstack/react-table'
 import { DataTable, RowAction, RowActionGroup, BulkAction, ContextMenuItem, ContextMenuGroup } from '@/components/DataTable'
+import { AdvancedFilterConfig } from '@/components/AdvancedFilter'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { Eye, PencilSimple, Trash, UserCheck, UserX, Copy, Users, Shield, Archive, Download, Clipboard, Phone, EnvelopeSimple } from '@phosphor-icons/react'
+import { Eye, PencilSimple, Trash, UserCheck, User, Copy, Users, Shield, Archive, Download, Clipboard, Phone, EnvelopeSimple } from '@phosphor-icons/react'
 
 interface User {
   id: string
@@ -15,20 +16,21 @@ interface User {
   status: 'active' | 'inactive' | 'pending'
   joinDate: string
   department: string
+  experienceYears?: number
 }
 
 // Sample data - 100 users for comprehensive testing
 const sampleUsers: User[] = [
-  { id: '1', name: 'John Doe', email: 'john.doe@example.com', role: 'Developer', status: 'active', joinDate: '2023-01-15', department: 'Engineering' },
-  { id: '2', name: 'Jane Smith', email: 'jane.smith@example.com', role: 'Designer', status: 'active', joinDate: '2023-02-20', department: 'Design' },
-  { id: '3', name: 'Bob Johnson', email: 'bob.johnson@example.com', role: 'Manager', status: 'inactive', joinDate: '2022-11-10', department: 'Engineering' },
-  { id: '4', name: 'Alice Brown', email: 'alice.brown@example.com', role: 'Analyst', status: 'pending', joinDate: '2023-03-05', department: 'Marketing' },
-  { id: '5', name: 'Charlie Wilson', email: 'charlie.wilson@example.com', role: 'Developer', status: 'active', joinDate: '2023-01-28', department: 'Engineering' },
-  { id: '6', name: 'Diana Davis', email: 'diana.davis@example.com', role: 'Designer', status: 'active', joinDate: '2023-02-14', department: 'Design' },
-  { id: '7', name: 'Eva Martinez', email: 'eva.martinez@example.com', role: 'QA Engineer', status: 'active', joinDate: '2023-03-12', department: 'Engineering' },
-  { id: '8', name: 'Frank Miller', email: 'frank.miller@example.com', role: 'Product Manager', status: 'active', joinDate: '2022-12-05', department: 'Product' },
-  { id: '9', name: 'Grace Lee', email: 'grace.lee@example.com', role: 'UX Designer', status: 'active', joinDate: '2023-01-30', department: 'Design' },
-  { id: '10', name: 'Henry Taylor', email: 'henry.taylor@example.com', role: 'Senior Developer', status: 'active', joinDate: '2022-10-15', department: 'Engineering' },
+  { id: '1', name: 'John Doe', email: 'john.doe@example.com', role: 'Developer', status: 'active', joinDate: '2023-01-15', department: 'Engineering', experienceYears: 5 },
+  { id: '2', name: 'Jane Smith', email: 'jane.smith@example.com', role: 'Designer', status: 'active', joinDate: '2023-02-20', department: 'Design', experienceYears: 3 },
+  { id: '3', name: 'Bob Johnson', email: 'bob.johnson@example.com', role: 'Manager', status: 'inactive', joinDate: '2022-11-10', department: 'Engineering', experienceYears: 8 },
+  { id: '4', name: 'Alice Brown', email: 'alice.brown@example.com', role: 'Analyst', status: 'pending', joinDate: '2023-03-05', department: 'Marketing', experienceYears: 2 },
+  { id: '5', name: 'Charlie Wilson', email: 'charlie.wilson@example.com', role: 'Developer', status: 'active', joinDate: '2023-01-28', department: 'Engineering', experienceYears: 4 },
+  { id: '6', name: 'Diana Davis', email: 'diana.davis@example.com', role: 'Designer', status: 'active', joinDate: '2023-02-14', department: 'Design', experienceYears: 6 },
+  { id: '7', name: 'Eva Martinez', email: 'eva.martinez@example.com', role: 'QA Engineer', status: 'active', joinDate: '2023-03-12', department: 'Engineering', experienceYears: 3 },
+  { id: '8', name: 'Frank Miller', email: 'frank.miller@example.com', role: 'Product Manager', status: 'active', joinDate: '2022-12-05', department: 'Product', experienceYears: 7 },
+  { id: '9', name: 'Grace Lee', email: 'grace.lee@example.com', role: 'UX Designer', status: 'active', joinDate: '2023-01-30', department: 'Design', experienceYears: 4 },
+  { id: '10', name: 'Henry Taylor', email: 'henry.taylor@example.com', role: 'Senior Developer', status: 'active', joinDate: '2022-10-15', department: 'Engineering', experienceYears: 10 },
   { id: '11', name: 'Ivy Chen', email: 'ivy.chen@example.com', role: 'Data Scientist', status: 'active', joinDate: '2023-02-28', department: 'Data' },
   { id: '12', name: 'Jack Brown', email: 'jack.brown@example.com', role: 'DevOps Engineer', status: 'inactive', joinDate: '2023-01-08', department: 'Engineering' },
   { id: '13', name: 'Kelly White', email: 'kelly.white@example.com', role: 'Marketing Specialist', status: 'active', joinDate: '2023-03-18', department: 'Marketing' },
@@ -217,6 +219,22 @@ function App() {
         return new Date(date).toLocaleDateString()
       },
     },
+    {
+      id: 'experienceYears',
+      accessorKey: 'experienceYears',
+      header: 'Experience',
+      enableSorting: true,
+      enableColumnFilter: true,
+      enableResizing: true,
+      enablePinning: true,
+      size: 80,
+      minSize: 70,
+      maxSize: 120,
+      cell: ({ getValue }) => {
+        const years = getValue() as number
+        return years ? `${years} yr${years !== 1 ? 's' : ''}` : '-'
+      },
+    },
   ], [])
 
   // Row actions configuration
@@ -261,7 +279,7 @@ function App() {
         },
         {
           label: 'Deactivate',
-          icon: UserX,
+          icon: User,
           onClick: (user) => {
             alert(`Deactivating user: ${user.name}`)
           },
@@ -299,7 +317,7 @@ function App() {
     },
     {
       label: 'Deactivate Selected',
-      icon: UserX,
+      icon: User,
       onClick: (users) => {
         const activeUsers = users.filter(user => user.status === 'active')
         if (activeUsers.length === 0) {
@@ -429,7 +447,7 @@ function App() {
         },
         {
           label: 'Deactivate User',
-          icon: UserX,
+          icon: User,
           onClick: (user) => {
             alert(`Deactivating user: ${user.name}`)
           },
@@ -458,6 +476,89 @@ function App() {
           shortcut: '⌘⌫',
         },
       ]
+    }
+  ], [])
+
+  // Advanced filter configuration with all filter types
+  const filterConfigs = useMemo<AdvancedFilterConfig[]>(() => [
+    {
+      id: 'name',
+      type: 'text',
+      label: 'Name',
+      placeholder: 'Search by name...'
+    },
+    {
+      id: 'email',
+      type: 'text',
+      label: 'Email',
+      placeholder: 'Search by email...'
+    },
+    {
+      id: 'role',
+      type: 'select',
+      label: 'Role',
+      placeholder: 'Select role',
+      options: [
+        { value: 'Developer', label: 'Developer' },
+        { value: 'Designer', label: 'Designer' },
+        { value: 'Manager', label: 'Manager' },
+        { value: 'Analyst', label: 'Analyst' },
+        { value: 'QA Engineer', label: 'QA Engineer' },
+        { value: 'Product Manager', label: 'Product Manager' },
+        { value: 'UX Designer', label: 'UX Designer' },
+        { value: 'Senior Developer', label: 'Senior Developer' },
+        { value: 'Data Scientist', label: 'Data Scientist' },
+        { value: 'DevOps Engineer', label: 'DevOps Engineer' },
+      ]
+    },
+    {
+      id: 'department',
+      type: 'multiselect',
+      label: 'Departments',
+      placeholder: 'Select departments',
+      options: [
+        { value: 'Engineering', label: 'Engineering' },
+        { value: 'Design', label: 'Design' },
+        { value: 'Marketing', label: 'Marketing' },
+        { value: 'Product', label: 'Product' },
+        { value: 'Data', label: 'Data' },
+        { value: 'HR', label: 'HR' },
+        { value: 'Sales', label: 'Sales' },
+        { value: 'Finance', label: 'Finance' },
+        { value: 'Operations', label: 'Operations' },
+        { value: 'Legal', label: 'Legal' },
+      ]
+    },
+    {
+      id: 'status',
+      type: 'multiselect',
+      label: 'Status',
+      placeholder: 'Select status',
+      options: [
+        { value: 'active', label: 'Active' },
+        { value: 'inactive', label: 'Inactive' },
+        { value: 'pending', label: 'Pending' },
+      ]
+    },
+    {
+      id: 'joinDate',
+      type: 'date',
+      label: 'Join Date',
+      placeholder: 'Select join date'
+    },
+    {
+      id: 'joinDateRange',
+      type: 'daterange',
+      label: 'Join Date Range',
+      placeholder: 'Select date range'
+    },
+    {
+      id: 'experienceYears',
+      type: 'number',
+      label: 'Experience Years',
+      placeholder: 'Enter years of experience',
+      min: 0,
+      max: 50
     }
   ], [])
 
@@ -532,6 +633,7 @@ function App() {
           title="User Management"
           searchable={true}
           filterable={true}
+          filterConfigs={filterConfigs}
           selectable={true}
           onRowClick={handleRowClick}
           onFilterApply={handleFilterApply}

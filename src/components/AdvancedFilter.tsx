@@ -1,439 +1,444 @@
 import { useState, useEffect } from 'react'
-import { Calendar } from '@/compo
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Checkbox } from '@/components/ui/check
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Calendar, X, Check, CaretUpDown } from '@phosphor-icons/react'
-  id: string
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
-  placeholder?: string
+import { Calendar as CalendarIcon, X, Check, CaretUpDown } from '@phosphor-icons/react'
+import { cn } from '@/lib/utils'
+import { format } from 'date-fns'
+import { DateRange } from 'react-day-picker'
 
-
+export interface FilterOption {
+  value: string
   label: string
-  multiselect?:
 }
 
 export interface AdvancedFilterConfig {
-  values: Re
+  id: string
+  type: 'text' | 'number' | 'select' | 'multiselect' | 'date' | 'daterange'
   label: string
-  className?: string
+  placeholder?: string
   options?: FilterOption[]
-  value, 
   min?: number
   max?: number
 }
 
 export interface FilterValue {
-    if (!range.
+  text?: string
+  number?: number
   select?: string
-  return (
-      <Popove
-          variant="outline"
-            "w-fu
- 
+  multiselect?: string[]
+  date?: Date
+  daterange?: DateRange
+}
 
-        </Button>
-      <PopoverContent className="
-          initialFocus
-          defaultMonth={value?.from}
-          onSelect={(
-            if (range
-            }
- 
+export interface FilterValues {
+  [key: string]: FilterValue
+}
 
-            variant="outlin
-         
+// Date picker component for single date selection
+function DatePicker({ 
+  value, 
   onChange, 
-          >
-     
-      </PopoverContent>
-  )
-
-  va
   placeholder = "Select date" 
-
-  placeholder?: string 
-  const [isOpen, setIsOpen] = useState(f
-  return (
-      <PopoverTrigger asChild>
-   
-
-  return (
-          <Calendar className="mr-2 h-3 w-3" />
-        </Button>
-      <PopoverC
-          variant="outline"
-          onSelect={(dat
-            setIsOpen(false)
-          initialFocus
-        <div
-         
-            onClick={() => {
-              setIsOpen(false)
-        </Button>
-          </Button>
-      </PopoverContent>
-  )
-          initialFocus
-  options, 
-          defaultMonth={value?.from}
 }: {
-  value?: string[]
-  placeholder?: string
-  const [isOpen, setIsOpen] = useState(fals
-  const selectedItems = option
-            }
-      ? valu
-    onChange(newValue)
-
-    onChange(value.filter(v => v !== o
-
-    <div className="space-y-2
-        <PopoverTrigger asChild>
-            variant="outline
-            aria-expanded={isOpen
-          >
-              
-          >
-            <Chev
-        </PopoverTr
-          <Com
-      </PopoverContent>
-              
-  )
- 
-
-                    <d
-         
-            
-  placeholder = "Select date" 
-     
-              
-                ))}
+  value?: Date
+  onChange: (date: Date | undefined) => void
   placeholder?: string 
-    
-              <Button
+}) {
+  const [isOpen, setIsOpen] = useState(false)
 
   return (
-                Select All
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-               
-                onClick={()
-                Clear Al
-            </div>
-        </PopoverContent>
-
-      {se
-          <Calendar className="mr-2 h-3 w-3" />
-              key={item.value}
+        <Button
+          variant="outline"
+          className={cn(
+            "w-full justify-start text-left text-xs h-8 font-normal",
+            !value && "text-muted-foreground"
+          )}
+        >
+          <CalendarIcon className="mr-2 h-3 w-3" />
+          {value ? format(value, "PPP") : placeholder}
         </Button>
-              {item.lab
-                type="button"
-                o
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
           mode="single"
-            </Badge>
-        </div>
-    </div>
+          selected={value}
+          onSelect={(date) => {
+            onChange(date)
             setIsOpen(false)
-export funct
+          }}
           initialFocus
-  onApply,
-  className
-  const [localVal
-  // Sync with external value
-    setLocalValues(values)
+        />
+        <div className="p-3 border-t border-border">
+          <Button
+            variant="outline"
+            className="w-full text-xs h-7"
             onClick={() => {
-    const newValues = { ...localV
+              onChange(undefined)
               setIsOpen(false)
-
+            }}
           >
-    onClear()
+            Clear
           </Button>
-    const valu
+        </div>
       </PopoverContent>
-      (value.t
+    </Popover>
   )
- 
+}
 
-
-  options, 
-        {confi
+// Date range picker component
+function DateRangePicker({ 
+  value, 
   onChange, 
-            <div key={config.id} cla
+  placeholder = "Select date range" 
 }: {
-                <Input
-  value?: string[]
-                  className="text-xs h-8
-  placeholder?: string
-    
-                  type="number"
+  value?: DateRange
+  onChange: (range: DateRange | undefined) => void
+  placeholder?: string 
+}) {
+  const [isOpen, setIsOpen] = useState(false)
 
-                  max={config.max}
-
-                  className="text-xs h-8"
-              )}
-              {config.type === 'select' && c
-                  value={value.
-    onChange(newValue)
-   
-
-                  <SelectContent>
-                    {config.options.map((option) =
-   
-
-          
-
-                <MultiSelect
-        <PopoverTrigger asChild>
-                 
-              )}
-              {config.type 
-                  value={value.dat
-                  placeholder={config.placeholder || `Sele
+  return (
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          className={cn(
+            "w-full justify-start text-left text-xs h-8 font-normal",
+            !value && "text-muted-foreground"
+          )}
+        >
+          <CalendarIcon className="mr-2 h-3 w-3" />
+          {value?.from ? (
+            value.to ? (
+              `${format(value.from, "LLL dd")} - ${format(value.to, "LLL dd")}`
+            ) : (
+              format(value.from, "LLL dd, y")
+            )
+          ) : (
+            placeholder
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="range"
+          defaultMonth={value?.from}
+          selected={value}
+          onSelect={(range) => {
+            onChange(range)
+            if (range?.from && range?.to) {
+              setIsOpen(false)
+            }
+          }}
+          numberOfMonths={2}
+          initialFocus
+        />
+        <div className="p-3 border-t border-border">
+          <Button
+            variant="outline"
+            className="w-full text-xs h-7"
+            onClick={() => {
+              onChange(undefined)
+              setIsOpen(false)
+            }}
           >
-              {config.type === 'daterange' 
-                  value={value.daterange}
-                 
-              )}
-          )
-      </div>
-      <div classNam
-          {hasActiveFilte
-              const value = localValues[key]
-            }).leng
-        </div>
-        <div className="f
-            variant="outline"
-            onClick={clearAl
-            className="text-xs h-7"
-            <X className="h-3 
+            Clear
           </Button>
-            size="sm"
-            className="text-xs h-7"
-            Apply Filters
         </div>
-    </div>
+      </PopoverContent>
+    </Popover>
+  )
 }
 
+// Multi-select component for multiple checkbox selection
+function MultiSelect({ 
+  options, 
+  value = [], 
+  onChange, 
+  placeholder = "Select options" 
+}: {
+  options: FilterOption[]
+  value?: string[]
+  onChange: (value: string[]) => void
+  placeholder?: string
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const selectedItems = options.filter(option => value.includes(option.value))
 
+  const handleSelect = (optionValue: string) => {
+    const newValue = value.includes(optionValue) 
+      ? value.filter(v => v !== optionValue)
+      : [...value, optionValue]
+    onChange(newValue)
+  }
 
+  const selectAll = () => {
+    onChange(options.map(option => option.value))
+  }
 
+  const clearAll = () => {
+    onChange([])
+  }
 
-
-
-
-
-
+  return (
+    <div className="space-y-2">
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={isOpen}
+            className="w-full justify-between text-xs h-8 font-normal"
+          >
+            {selectedItems.length > 0 
+              ? `${selectedItems.length} selected`
+              : placeholder
+            }
+            <CaretUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[200px] p-0" align="start">
+          <Command>
+            <CommandInput placeholder="Search..." className="text-xs h-8" />
+            <CommandList>
+              <CommandEmpty>No options found.</CommandEmpty>
+              <CommandGroup>
+                <div className="flex gap-1 p-2 border-b">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs h-6 flex-1"
+                    onClick={selectAll}
+                  >
+                    Select All
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs h-6 flex-1"
+                    onClick={clearAll}
+                  >
+                    Clear All
+                  </Button>
+                </div>
+                {options.map((option) => (
+                  <CommandItem
+                    key={option.value}
+                    value={option.value}
+                    onSelect={() => handleSelect(option.value)}
+                    className="text-xs"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={value.includes(option.value)}
+                        onChange={() => handleSelect(option.value)}
+                      />
+                      <span>{option.label}</span>
+                    </div>
+                  </CommandItem>
                 ))}
-
-
-
-
-
-              <Button
-
-
-
-
-
-                Select All
-
-              <Button
-
-
-
-
-
-
-
-            </div>
-
+              </CommandGroup>
+            </CommandList>
+          </Command>
         </PopoverContent>
+      </Popover>
 
-
-
-
-
+      {selectedItems.length > 0 && (
+        <div className="flex flex-wrap gap-1">
           {selectedItems.map((item) => (
-
+            <Badge
               key={item.value}
-
-
-
-
-
+              variant="secondary"
+              className="text-xs px-1 py-0 h-5"
+            >
+              {item.label}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-3 w-3 p-0 ml-1 hover:bg-destructive hover:text-destructive-foreground"
                 type="button"
-
-
-
-
-
+                onClick={() => handleSelect(item.value)}
+              >
+                <X className="h-2 w-2" />
+              </Button>
             </Badge>
-
+          ))}
         </div>
-
+      )}
     </div>
-
+  )
 }
 
-
-
+export function AdvancedFilter({ 
+  configs,
   values,
-
   onApply,
-
+  onClear,
   className
+}: {
+  configs: AdvancedFilterConfig[]
+  values: FilterValues
+  onApply: (values: FilterValues) => void
+  onClear: () => void
+  className?: string
+}) {
+  const [localValues, setLocalValues] = useState<FilterValues>(values)
 
-
-
-
-
+  // Sync with external value changes
+  useEffect(() => {
     setLocalValues(values)
+  }, [values])
 
+  const onChange = (configId: string, newValue: FilterValue) => {
+    const newValues = { ...localValues, [configId]: newValue }
+    setLocalValues(newValues)
+  }
 
-
-
-
-    onChange(newValues)
-
-
-
-
-
+  const clearAll = () => {
+    setLocalValues({})
     onClear()
+  }
 
+  const applyFilters = () => {
+    onApply(localValues)
+  }
 
+  const hasActiveFilters = Object.keys(localValues).some(key => {
+    const value = localValues[key]
+    return value && (
+      value.text ||
+      value.number !== undefined ||
+      value.select ||
+      (value.multiselect && value.multiselect.length > 0) ||
+      value.date ||
+      (value.daterange && (value.daterange.from || value.daterange.to))
+    )
+  })
 
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  return (
+    <div className={cn("space-y-4 p-4", className)}>
+      <div className="space-y-3">
+        {configs.map((config) => {
+          const value = localValues[config.id] || {}
+          
+          return (
+            <div key={config.id} className="space-y-1">
+              <label className="text-xs font-medium text-foreground">
+                {config.label}
+              </label>
+              
+              {config.type === 'text' && (
                 <Input
-
-
-
-
-
-              )}
-
-
-
-                  type="number"
-
-
-
-                  max={config.max}
-
-
-
+                  value={value.text || ''}
+                  onChange={(e) => onChange(config.id, { text: e.target.value })}
+                  placeholder={config.placeholder}
                   className="text-xs h-8"
-
+                />
               )}
-
-
-
-
-
-
-
-
-
-
-
+              
+              {config.type === 'number' && (
+                <Input
+                  value={value.number || ''}
+                  onChange={(e) => onChange(config.id, { number: Number(e.target.value) })}
+                  placeholder={config.placeholder}
+                  type="number"
+                  min={config.min}
+                  max={config.max}
+                  className="text-xs h-8"
+                />
+              )}
+              
+              {config.type === 'select' && config.options && (
+                <Select
+                  value={value.select || ''}
+                  onValueChange={(newValue) => onChange(config.id, { select: newValue })}
+                >
+                  <SelectTrigger className="text-xs h-8">
+                    <SelectValue placeholder={config.placeholder || `Select ${config.label.toLowerCase()}`} />
+                  </SelectTrigger>
                   <SelectContent>
-
-
-
-
-
-
-
-
-
-
-
+                    {config.options.map((option) => (
+                      <SelectItem key={option.value} value={option.value} className="text-xs">
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              
+              {config.type === 'multiselect' && config.options && (
                 <MultiSelect
-
-
-
-
-
+                  options={config.options}
+                  value={value.multiselect || []}
+                  onChange={(newValue) => onChange(config.id, { multiselect: newValue })}
+                  placeholder={config.placeholder || `Select ${config.label.toLowerCase()}`}
+                />
               )}
-
-
-
-
-
-
-
-
-
-
-
+              
+              {config.type === 'date' && (
+                <DatePicker
+                  value={value.date}
+                  onChange={(newValue) => onChange(config.id, { date: newValue })}
+                  placeholder={config.placeholder || `Select ${config.label.toLowerCase()}`}
+                />
+              )}
+              
+              {config.type === 'daterange' && (
+                <DateRangePicker
                   value={value.daterange}
-
-
-
+                  onChange={(newValue) => onChange(config.id, { daterange: newValue })}
+                  placeholder={config.placeholder || `Select ${config.label.toLowerCase()} range`}
+                />
               )}
-
+            </div>
           )
-
+        })}
       </div>
-
-
-
-
-
+      
+      <div className="flex flex-col gap-2 pt-2 border-t">
+        {hasActiveFilters && (
+          <div className="text-xs text-muted-foreground">
+            {Object.keys(localValues).filter(key => {
               const value = localValues[key]
-
-
-
-        </div>
-
-
-
+              return value && (
+                value.text ||
+                value.number !== undefined ||
+                value.select ||
+                (value.multiselect && value.multiselect.length > 0) ||
+                value.date ||
+                (value.daterange && (value.daterange.from || value.daterange.to))
+              )
+            }).length} active filter{Object.keys(localValues).length !== 1 ? 's' : ''}
+          </div>
+        )}
+        <div className="flex gap-2">
+          <Button
             variant="outline"
-
-
-
-            className="text-xs h-7"
-
-
-
-          </Button>
-
             size="sm"
-
-            className="text-xs h-7"
-
+            onClick={clearAll}
+            className="text-xs h-7 flex-1"
+            disabled={!hasActiveFilters}
+          >
+            <X className="h-3 w-3 mr-1" />
+            Clear
+          </Button>
+          <Button
+            onClick={applyFilters}
+            size="sm"
+            className="text-xs h-7 flex-1"
+          >
             Apply Filters
-
+          </Button>
         </div>
-
+      </div>
     </div>
-
+  )
 }
