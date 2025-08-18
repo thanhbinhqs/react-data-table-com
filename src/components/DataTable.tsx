@@ -629,8 +629,8 @@ export function DataTable<TData>({
                             </div>
                           )}
                           
-                          {/* Pin indicator */}
-                          {isPinned && (
+                          {/* Pin indicator - Hide for selection and row number columns */}
+                          {isPinned && header.column.id !== 'select' && header.column.id !== 'rowNumber' && (
                             <PushPin className={cn(
                               "h-3 w-3 text-primary flex-shrink-0",
                               isPinned === 'right' && "rotate-90"
