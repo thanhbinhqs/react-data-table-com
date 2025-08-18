@@ -180,16 +180,6 @@ export function DataTable<TData>({
     return [selectionColumn, ...columns]
   }, [columns, selectable])
 
-  // Get selected rows data
-  const selectedRowsData = useMemo(() => {
-    return table.getFilteredSelectedRowModel().rows.map(row => row.original)
-  }, [rowSelection, table])
-
-  // Notify parent component of selection changes
-  useMemo(() => {
-    onSelectionChange?.(selectedRowsData)
-  }, [selectedRowsData, onSelectionChange])
-
   const table = useReactTable({
     data,
     columns: tableColumns,
@@ -228,6 +218,16 @@ export function DataTable<TData>({
     debugHeaders: false,
     debugColumns: false,
   })
+
+  // Get selected rows data
+  const selectedRowsData = useMemo(() => {
+    return table.getFilteredSelectedRowModel().rows.map(row => row.original)
+  }, [rowSelection, table])
+
+  // Notify parent component of selection changes
+  useMemo(() => {
+    onSelectionChange?.(selectedRowsData)
+  }, [selectedRowsData, onSelectionChange])
 
   // Check if any column is currently being resized
   const isResizing = table.getAllColumns().some(col => col.getIsResizing())
