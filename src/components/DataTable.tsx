@@ -1,18 +1,33 @@
 /*
- * DataTable Component - Column Resizing Test Guide
+ * DataTable Component - Advanced Features Guide
  * 
- * To test column resizing functionality:
+ * This component provides a comprehensive data table with the following features:
+ * 
+ * COLUMN RESIZING:
  * 1. Look for the thin vertical line at the right edge of each column header
  * 2. Hover over the right border of any column header - cursor should change to col-resize
  * 3. Click and drag the border left or right to resize the column
  * 4. Release to apply the new size
  * 
+ * STICKY COLUMNS (NEW):
+ * 1. Open the "Columns" panel from the top-right controls
+ * 2. Use the pin icons next to each column name:
+ *    - Left pin icon: Pin column to the left side
+ *    - Center unpin icon: Remove pinning
+ *    - Right pin icon: Pin column to the right side
+ * 3. Pinned columns will remain visible while scrolling horizontally
+ * 4. Use "Unpin All" to quickly remove all column pinning
+ * 
  * Features implemented:
- * - Smooth dragging with visual feedback
+ * - Smooth column resizing with visual feedback
  * - Minimum and maximum size constraints
  * - Real-time resizing (onChange mode)
  * - Visual resize handle indicators
  * - Touch support for mobile devices
+ * - Left and right column pinning with sticky positioning
+ * - Visual indicators for pinned columns
+ * - Shadow effects to show column boundaries
+ * - Maintain pinning state during table operations
  */
 
 import { useState, useMemo } from 'react'
@@ -28,6 +43,7 @@ import {
   VisibilityState,
   Row,
   ColumnResizeMode,
+  ColumnPinningState,
 } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -43,7 +59,9 @@ import {
   X,
   Eye,
   EyeSlash,
-  ArrowsOutCardinal
+  ArrowsOutCardinal,
+  PushPin,
+  PushPinSlash
 } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
 
@@ -80,6 +98,7 @@ export function DataTable<TData>({
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+  const [columnPinning, setColumnPinning] = useState<ColumnPinningState>({})
   const [globalFilter, setGlobalFilter] = useState('')
   const [filterValues, setFilterValues] = useState<Record<string, any>>({})
   const [columnResizeMode] = useState<ColumnResizeMode>('onChange')
@@ -104,8 +123,10 @@ export function DataTable<TData>({
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
+    onColumnPinningChange: setColumnPinning,
     onGlobalFilterChange: setGlobalFilter,
     enableColumnResizing: true,
+    enableColumnPinning: true,
     columnResizeMode,
     columnResizeDirection: 'ltr',
     defaultColumn: {
@@ -117,6 +138,7 @@ export function DataTable<TData>({
       sorting,
       columnFilters,
       columnVisibility,
+      columnPinning,
       globalFilter,
     },
     debugTable: false,
@@ -186,7 +208,7 @@ export function DataTable<TData>({
             </div>
           )}
 
-          {/* Column Visibility Toggle */}
+          {/* Column Visibility and Pinning Toggle */}
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="sm">
@@ -196,25 +218,90 @@ export function DataTable<TData>({
             </SheetTrigger>
             <SheetContent side="right" className="w-80">
               <SheetHeader>
-                <SheetTitle>Column Visibility</SheetTitle>
+                <SheetTitle>Column Settings</SheetTitle>
               </SheetHeader>
-              <div className="space-y-4 pt-4">
-                {table.getAllColumns()
-                  .filter(column => column.getCanHide())
-                  .map(column => (
-                    <div key={column.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={column.id}
-                        checked={column.getIsVisible()}
-                        onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                      />
-                      <Label htmlFor={column.id} className="text-sm font-medium">
-                        {typeof column.columnDef.header === 'string' 
-                          ? column.columnDef.header 
-                          : column.id}
-                      </Label>
-                    </div>
-                  ))}
+              <div className="space-y-6 pt-4">
+                <div>
+                  <h4 className="text-sm font-medium mb-3">Column Visibility</h4>
+                  <div className="space-y-3">
+                    {table.getAllColumns()
+                      .filter(column => column.getCanHide())
+                      .map(column => (
+                        <div key={column.id} className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id={column.id}
+                              checked={column.getIsVisible()}
+                              onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                            />
+                            <Label htmlFor={column.id} className="text-sm font-medium">
+                              {typeof column.columnDef.header === 'string' 
+                                ? column.columnDef.header 
+                                : column.id}
+                            </Label>
+                          </div>
+                          
+                          {/* Pin Controls */}
+                          {column.getIsVisible() && column.getCanPin() && (
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={() => column.pin('left')}
+                                title="Pin to left"
+                                disabled={column.getIsPinned() === 'left'}
+                              >
+                                <PushPin className={cn(
+                                  "h-3 w-3 transition-colors",
+                                  column.getIsPinned() === 'left' ? "text-primary" : "text-muted-foreground"
+                                )} />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={() => column.pin(false)}
+                                title="Unpin"
+                                disabled={!column.getIsPinned()}
+                              >
+                                <PushPinSlash className="h-3 w-3 text-muted-foreground" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={() => column.pin('right')}
+                                title="Pin to right"
+                                disabled={column.getIsPinned() === 'right'}
+                              >
+                                <PushPin className={cn(
+                                  "h-3 w-3 transition-colors rotate-90",
+                                  column.getIsPinned() === 'right' ? "text-primary" : "text-muted-foreground"
+                                )} />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+                
+                {/* Quick Actions */}
+                <Separator />
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium">Quick Actions</h4>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => table.resetColumnPinning()}
+                      className="flex-1"
+                    >
+                      Unpin All
+                    </Button>
+                  </div>
+                </div>
               </div>
             </SheetContent>
           </Sheet>
@@ -279,73 +366,97 @@ export function DataTable<TData>({
               width: table.getTotalSize(),
             }}
           >
-            <thead className="sticky top-0 z-10 bg-background border-b shadow-sm">
+            <thead className="sticky top-0 z-20 bg-background border-b shadow-sm">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      className="relative h-12 px-4 text-left align-middle font-medium text-muted-foreground group border-r border-border/50 last:border-r-0 select-none"
-                      style={{ 
-                        width: header.getSize(),
-                        maxWidth: header.getSize(),
-                        minWidth: header.getSize(),
-                      }}
-                    >
-                      <div className="flex items-center gap-2 h-full">
-                        {header.isPlaceholder ? null : (
+                  {headerGroup.headers.map((header) => {
+                    const isPinned = header.column.getIsPinned()
+                    const pinnedPosition = isPinned === 'left' 
+                      ? `${header.column.getStart('left')}px`
+                      : isPinned === 'right'
+                      ? `${header.column.getAfter('right')}px`
+                      : undefined
+
+                    return (
+                      <th
+                        key={header.id}
+                        className={cn(
+                          "relative h-12 px-4 text-left align-middle font-medium text-muted-foreground group border-r border-border/50 last:border-r-0 select-none",
+                          isPinned && "sticky z-30 bg-background shadow-sm",
+                          isPinned === 'left' && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]",
+                          isPinned === 'right' && "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.1)]"
+                        )}
+                        style={{ 
+                          width: header.getSize(),
+                          maxWidth: header.getSize(),
+                          minWidth: header.getSize(),
+                          left: isPinned === 'left' ? pinnedPosition : undefined,
+                          right: isPinned === 'right' ? pinnedPosition : undefined,
+                        }}
+                      >
+                        <div className="flex items-center gap-2 h-full">
+                          {header.isPlaceholder ? null : (
+                            <div
+                              className={cn(
+                                'flex items-center gap-2 cursor-pointer select-none flex-1 min-w-0',
+                                header.column.getCanSort() && 'hover:text-foreground'
+                              )}
+                              onClick={header.column.getToggleSortingHandler()}
+                            >
+                              <span className="truncate">
+                                {flexRender(header.column.columnDef.header, header.getContext())}
+                              </span>
+                              {header.column.getCanSort() && (
+                                <div className="flex flex-col flex-shrink-0">
+                                  <CaretUp 
+                                    className={cn(
+                                      'h-3 w-3 transition-colors',
+                                      header.column.getIsSorted() === 'asc' 
+                                        ? 'text-foreground' 
+                                        : 'text-muted-foreground/50'
+                                    )} 
+                                  />
+                                  <CaretDown 
+                                    className={cn(
+                                      'h-3 w-3 -mt-1 transition-colors',
+                                      header.column.getIsSorted() === 'desc' 
+                                        ? 'text-foreground' 
+                                        : 'text-muted-foreground/50'
+                                    )} 
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          
+                          {/* Pin indicator */}
+                          {isPinned && (
+                            <PushPin className={cn(
+                              "h-3 w-3 text-primary flex-shrink-0",
+                              isPinned === 'right' && "rotate-90"
+                            )} />
+                          )}
+                        </div>
+                        
+                        {/* Column Resizer */}
+                        {header.column.getCanResize() && (
                           <div
-                            className={cn(
-                              'flex items-center gap-2 cursor-pointer select-none flex-1 min-w-0',
-                              header.column.getCanSort() && 'hover:text-foreground'
-                            )}
-                            onClick={header.column.getToggleSortingHandler()}
+                            className="absolute right-0 top-0 h-full w-3 cursor-col-resize bg-transparent hover:bg-primary/20 active:bg-primary/40 transition-all duration-150"
+                            style={{
+                              transform: header.column.getIsResizing() ? 'scaleX(1.5)' : undefined,
+                              userSelect: 'none',
+                              touchAction: 'none',
+                            }}
+                            onMouseDown={header.getResizeHandler()}
+                            onTouchStart={header.getResizeHandler()}
                           >
-                            <span className="truncate">
-                              {flexRender(header.column.columnDef.header, header.getContext())}
-                            </span>
-                            {header.column.getCanSort() && (
-                              <div className="flex flex-col flex-shrink-0">
-                                <CaretUp 
-                                  className={cn(
-                                    'h-3 w-3 transition-colors',
-                                    header.column.getIsSorted() === 'asc' 
-                                      ? 'text-foreground' 
-                                      : 'text-muted-foreground/50'
-                                  )} 
-                                />
-                                <CaretDown 
-                                  className={cn(
-                                    'h-3 w-3 -mt-1 transition-colors',
-                                    header.column.getIsSorted() === 'desc' 
-                                      ? 'text-foreground' 
-                                      : 'text-muted-foreground/50'
-                                  )} 
-                                />
-                              </div>
-                            )}
+                            {/* Visual indicator for resize handle */}
+                            <div className="absolute right-1 top-1/2 transform -translate-y-1/2 w-0.5 h-6 bg-border/60 group-hover:bg-primary/60 transition-colors" />
                           </div>
                         )}
-                      </div>
-                      
-                      {/* Column Resizer */}
-                      {header.column.getCanResize() && (
-                        <div
-                          className="absolute right-0 top-0 h-full w-3 cursor-col-resize bg-transparent hover:bg-primary/20 active:bg-primary/40 transition-all duration-150"
-                          style={{
-                            transform: header.column.getIsResizing() ? 'scaleX(1.5)' : undefined,
-                            userSelect: 'none',
-                            touchAction: 'none',
-                          }}
-                          onMouseDown={header.getResizeHandler()}
-                          onTouchStart={header.getResizeHandler()}
-                        >
-                          {/* Visual indicator for resize handle */}
-                          <div className="absolute right-1 top-1/2 transform -translate-y-1/2 w-0.5 h-6 bg-border/60 group-hover:bg-primary/60 transition-colors" />
-                        </div>
-                      )}
-                    </th>
-                  ))}
+                      </th>
+                    )
+                  })}
                 </tr>
               ))}
             </thead>
@@ -356,27 +467,43 @@ export function DataTable<TData>({
                     key={row.id}
                     data-state={row.getIsSelected() && 'selected'}
                     className={cn(
-                      'border-b transition-colors hover:bg-muted/50',
+                      'group border-b transition-colors hover:bg-muted/50',
                       onRowClick && 'cursor-pointer',
                       'data-[state=selected]:bg-muted'
                     )}
                     onClick={() => onRowClick?.(row)}
                   >
-                    {row.getVisibleCells().map((cell) => (
-                      <td 
-                        key={cell.id} 
-                        className="p-4 align-middle border-r border-border/30 last:border-r-0"
-                        style={{ 
-                          width: cell.column.getSize(),
-                          maxWidth: cell.column.getSize(),
-                          minWidth: cell.column.getSize(),
-                        }}
-                      >
-                        <div className="truncate">
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </div>
-                      </td>
-                    ))}
+                    {row.getVisibleCells().map((cell) => {
+                      const isPinned = cell.column.getIsPinned()
+                      const pinnedPosition = isPinned === 'left' 
+                        ? `${cell.column.getStart('left')}px`
+                        : isPinned === 'right'
+                        ? `${cell.column.getAfter('right')}px`
+                        : undefined
+
+                      return (
+                        <td 
+                          key={cell.id} 
+                          className={cn(
+                            "p-4 align-middle border-r border-border/30 last:border-r-0 group-hover:bg-muted/50",
+                            isPinned && "sticky z-10 bg-background group-hover:bg-muted/50",
+                            isPinned === 'left' && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.05)]",
+                            isPinned === 'right' && "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.05)]"
+                          )}
+                          style={{ 
+                            width: cell.column.getSize(),
+                            maxWidth: cell.column.getSize(),
+                            minWidth: cell.column.getSize(),
+                            left: isPinned === 'left' ? pinnedPosition : undefined,
+                            right: isPinned === 'right' ? pinnedPosition : undefined,
+                          }}
+                        >
+                          <div className="truncate">
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </div>
+                        </td>
+                      )
+                    })}
                   </tr>
                 ))
               ) : (
