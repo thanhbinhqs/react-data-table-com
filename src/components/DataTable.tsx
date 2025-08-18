@@ -9,7 +9,7 @@
  * 3. Click and drag the border left or right to resize the column
  * 4. Release to apply the new size
  * 
- * STICKY COLUMNS (NEW):
+ * STICKY COLUMNS:
  * 1. Open the "Columns" panel from the top-right controls
  * 2. Use the pin icons next to each column name:
  *    - Left pin icon: Pin column to the left side
@@ -17,6 +17,10 @@
  *    - Right pin icon: Pin column to the right side
  * 3. Pinned columns will remain visible while scrolling horizontally
  * 4. Use "Unpin All" to quickly remove all column pinning
+ * 
+ * NEW PROPS:
+ * - spin: boolean - Shows a loading spinner overlay when true
+ * - sticky: boolean - Controls whether table headers and pinned columns stick during scroll
  * 
  * Features implemented:
  * - Smooth column resizing with visual feedback
@@ -28,6 +32,8 @@
  * - Visual indicators for pinned columns
  * - Shadow effects to show column boundaries
  * - Maintain pinning state during table operations
+ * - Loading state with spinner overlay
+ * - Configurable sticky header behavior
  */
 
 import { useState, useMemo } from 'react'
@@ -61,7 +67,8 @@ import {
   EyeSlash,
   ArrowsOutCardinal,
   PushPin,
-  PushPinSlash
+  PushPinSlash,
+  CircleNotch
 } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
 
@@ -75,6 +82,8 @@ export interface DataTableProps<TData> {
   onRowClick?: (row: Row<TData>) => void
   onFilterApply?: (filters: ColumnFiltersState) => void
   onClear?: () => void
+  spin?: boolean
+  sticky?: boolean
 }
 
 interface FilterConfig {
@@ -94,6 +103,8 @@ export function DataTable<TData>({
   onRowClick,
   onFilterApply,
   onClear,
+  spin = false,
+  sticky = true,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -358,15 +369,26 @@ export function DataTable<TData>({
       </div>
 
       {/* Table Container - Scrollable */}
-      <div className="flex-1 rounded-md border overflow-hidden">
+      <div className="flex-1 rounded-md border overflow-hidden relative">
         <div className="h-full overflow-auto">
+          {spin && (
+            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+              <div className="flex items-center gap-3 text-muted-foreground">
+                <CircleNotch className="h-6 w-6 animate-spin" />
+                <span className="text-sm font-medium">Loading...</span>
+              </div>
+            </div>
+          )}
           <table 
             className="relative w-full"
             style={{
               width: table.getTotalSize(),
             }}
           >
-            <thead className="sticky top-0 z-20 bg-background border-b shadow-sm">
+            <thead className={cn(
+              "z-20 bg-background border-b shadow-sm",
+              sticky && "sticky top-0"
+            )}>
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
@@ -382,7 +404,7 @@ export function DataTable<TData>({
                         key={header.id}
                         className={cn(
                           "relative h-12 px-4 text-left align-middle font-medium text-muted-foreground group border-r border-border/50 last:border-r-0 select-none",
-                          isPinned && "sticky z-30 bg-background shadow-sm",
+                          isPinned && sticky && "sticky z-30 bg-background shadow-sm",
                           isPinned === 'left' && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]",
                           isPinned === 'right' && "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.1)]"
                         )}
@@ -390,8 +412,8 @@ export function DataTable<TData>({
                           width: header.getSize(),
                           maxWidth: header.getSize(),
                           minWidth: header.getSize(),
-                          left: isPinned === 'left' ? pinnedPosition : undefined,
-                          right: isPinned === 'right' ? pinnedPosition : undefined,
+                          left: isPinned === 'left' && sticky ? pinnedPosition : undefined,
+                          right: isPinned === 'right' && sticky ? pinnedPosition : undefined,
                         }}
                       >
                         <div className="flex items-center gap-2 h-full">
@@ -486,7 +508,7 @@ export function DataTable<TData>({
                           key={cell.id} 
                           className={cn(
                             "p-4 align-middle border-r border-border/30 last:border-r-0 group-hover:bg-muted/50",
-                            isPinned && "sticky z-10 bg-background group-hover:bg-muted/50",
+                            isPinned && sticky && "sticky z-10 bg-background group-hover:bg-muted/50",
                             isPinned === 'left' && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.05)]",
                             isPinned === 'right' && "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.05)]"
                           )}
@@ -494,8 +516,8 @@ export function DataTable<TData>({
                             width: cell.column.getSize(),
                             maxWidth: cell.column.getSize(),
                             minWidth: cell.column.getSize(),
-                            left: isPinned === 'left' ? pinnedPosition : undefined,
-                            right: isPinned === 'right' ? pinnedPosition : undefined,
+                            left: isPinned === 'left' && sticky ? pinnedPosition : undefined,
+                            right: isPinned === 'right' && sticky ? pinnedPosition : undefined,
                           }}
                         >
                           <div className="truncate">

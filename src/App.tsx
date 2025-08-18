@@ -1,8 +1,10 @@
-import { useMemo, useCallback } from 'react'
+import { useMemo, useCallback, useState } from 'react'
 import { ColumnDef, ColumnFiltersState } from '@tanstack/react-table'
 import { DataTable } from '@/components/DataTable'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import { Eye } from '@phosphor-icons/react'
 
 interface User {
@@ -120,6 +122,9 @@ const sampleUsers: User[] = [
 ]
 
 function App() {
+  const [isLoading, setIsLoading] = useState(false)
+  const [stickyHeader, setStickyHeader] = useState(true)
+
   const columns = useMemo<ColumnDef<User>[]>(() => [
     {
       id: 'name',
@@ -246,6 +251,13 @@ function App() {
     console.log('Filters cleared')
   }, [])
 
+  const simulateLoading = useCallback(() => {
+    setIsLoading(true)
+    setTimeout(() => {
+      setIsLoading(false)
+    }, 2000)
+  }, [])
+
   return (
     <div className="h-screen flex flex-col overflow-hidden">
       {/* Header */}
@@ -258,6 +270,26 @@ function App() {
             </p>
           </div>
           <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={simulateLoading}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Loading...' : 'Simulate Loading'}
+              </Button>
+              <div className="flex items-center gap-2">
+                <Switch 
+                  id="sticky-toggle"
+                  checked={stickyHeader}
+                  onCheckedChange={setStickyHeader}
+                />
+                <Label htmlFor="sticky-toggle" className="text-sm">
+                  Sticky Header
+                </Label>
+              </div>
+            </div>
             <span className="text-sm text-primary-foreground/80">
               {sampleUsers.length} total users
             </span>
@@ -276,6 +308,8 @@ function App() {
           onRowClick={handleRowClick}
           onFilterApply={handleFilterApply}
           onClear={handleClear}
+          spin={isLoading}
+          sticky={stickyHeader}
         />
       </main>
     </div>
