@@ -279,7 +279,7 @@ export function DataTable<TData>({
               width: table.getTotalSize(),
             }}
           >
-            <thead className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+            <thead className="sticky top-0 z-10 bg-background border-b shadow-sm">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
