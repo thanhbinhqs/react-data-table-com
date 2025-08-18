@@ -232,9 +232,9 @@ export function DataTable<TData>({
         enableHiding: false,
         enableResizing: false,
         enablePinning: false, // Disable pinning since it's always pinned left
-        size: 48,
-        minSize: 48,
-        maxSize: 48,
+        size: 56,
+        minSize: 56,
+        maxSize: 56,
       }
       extraColumns.push(selectionColumn)
     }
@@ -258,9 +258,9 @@ export function DataTable<TData>({
       enableResizing: false,
       enableColumnFilter: false,
       enablePinning: false, // Disable pinning since it's always pinned left
-      size: 40,
-      minSize: 40,
-      maxSize: 40,
+      size: 50,
+      minSize: 50,
+      maxSize: 50,
     }
     extraColumns.push(rowNumberColumn)
 
@@ -816,7 +816,9 @@ export function DataTable<TData>({
                           "relative h-6 px-2 text-left align-middle font-medium text-muted-foreground group border-r border-border/50 last:border-r-0 select-none text-xs",
                           isPinned && sticky && "sticky z-[70] bg-background/100 shadow-sm border-l border-border/30",
                           isPinned === 'left' && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]",
-                          isPinned === 'right' && "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.15)]"
+                          isPinned === 'right' && "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.15)]",
+                          header.column.id === 'select' && "text-center",
+                          header.column.id === 'rowNumber' && "text-center"
                         )}
                         style={{ 
                           width: header.getSize(),
@@ -826,12 +828,18 @@ export function DataTable<TData>({
                           right: isPinned === 'right' && sticky ? pinnedPosition : undefined,
                         }}
                       >
-                        <div className="flex items-center gap-2 h-full">
+                        <div className={cn(
+                          "flex items-center gap-2 h-full",
+                          header.column.id === 'select' && "justify-center",
+                          header.column.id === 'rowNumber' && "justify-center"
+                        )}>
                           {header.isPlaceholder ? null : (
                             <div
                               className={cn(
                                 'flex items-center gap-2 cursor-pointer select-none flex-1 min-w-0',
-                                header.column.getCanSort() && 'hover:text-foreground'
+                                header.column.getCanSort() && 'hover:text-foreground',
+                                header.column.id === 'select' && 'justify-center',
+                                header.column.id === 'rowNumber' && 'justify-center'
                               )}
                               onClick={header.column.getToggleSortingHandler()}
                             >
