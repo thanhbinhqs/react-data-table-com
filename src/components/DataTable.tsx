@@ -10,6 +10,7 @@ import {
   SortingState,
   VisibilityState,
   Row,
+  ColumnResizeMode,
 } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -64,6 +65,7 @@ export function DataTable<TData>({
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [globalFilter, setGlobalFilter] = useState('')
   const [filterValues, setFilterValues] = useState<Record<string, any>>({})
+  const [columnResizeMode] = useState<ColumnResizeMode>('onChange')
 
   // Generate filter configs from columns
   const filterConfigs = useMemo(() => {
@@ -86,6 +88,8 @@ export function DataTable<TData>({
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onGlobalFilterChange: setGlobalFilter,
+    enableColumnResizing: true,
+    columnResizeMode,
     state: {
       sorting,
       columnFilters,
@@ -239,28 +243,39 @@ export function DataTable<TData>({
       {/* Table Container - Scrollable */}
       <div className="flex-1 rounded-md border overflow-hidden">
         <div className="h-full overflow-auto">
-          <table className="w-full">
-            <thead className="sticky top-0 z-10 bg-background backdrop-blur-sm border-b shadow-sm">
+          <table 
+            className="relative"
+            style={{
+              width: table.getCenterTotalSize(),
+              tableLayout: 'fixed',
+            }}
+          >
+            <thead className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
               {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id} className="bg-background">
+                <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
-                      className="relative h-12 px-4 text-left align-middle font-medium text-muted-foreground group bg-background"
-                      style={{ width: header.getSize() }}
+                      className="relative h-12 px-4 text-left align-middle font-medium text-muted-foreground group border-r border-border/50 last:border-r-0"
+                      style={{ 
+                        width: header.getSize(),
+                        position: 'relative',
+                      }}
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 h-full">
                         {header.isPlaceholder ? null : (
                           <div
                             className={cn(
-                              'flex items-center gap-2 cursor-pointer select-none',
+                              'flex items-center gap-2 cursor-pointer select-none flex-1',
                               header.column.getCanSort() && 'hover:text-foreground'
                             )}
                             onClick={header.column.getToggleSortingHandler()}
                           >
-                            {flexRender(header.column.columnDef.header, header.getContext())}
+                            <span className="truncate">
+                              {flexRender(header.column.columnDef.header, header.getContext())}
+                            </span>
                             {header.column.getCanSort() && (
-                              <div className="flex flex-col">
+                              <div className="flex flex-col flex-shrink-0">
                                 <CaretUp 
                                   className={cn(
                                     'h-3 w-3 transition-colors',
@@ -286,12 +301,13 @@ export function DataTable<TData>({
                       {/* Column Resizer */}
                       {header.column.getCanResize() && (
                         <div
-                          className="absolute right-0 top-0 h-full w-1 cursor-col-resize bg-transparent hover:bg-primary/50 group-hover:bg-border"
+                          className="absolute right-0 top-0 h-full w-1 cursor-col-resize bg-transparent hover:bg-primary/20 active:bg-primary/40 transition-colors"
+                          style={{
+                            transform: header.column.getIsResizing() ? 'scaleX(2)' : undefined,
+                          }}
                           onMouseDown={header.getResizeHandler()}
                           onTouchStart={header.getResizeHandler()}
-                        >
-                          <ArrowsOutCardinal className="absolute top-1/2 left-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </div>
+                        />
                       )}
                     </th>
                   ))}
@@ -312,8 +328,14 @@ export function DataTable<TData>({
                     onClick={() => onRowClick?.(row)}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="p-4 align-middle">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      <td 
+                        key={cell.id} 
+                        className="p-4 align-middle border-r border-border/30 last:border-r-0"
+                        style={{ width: cell.column.getSize() }}
+                      >
+                        <div className="truncate">
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </div>
                       </td>
                     ))}
                   </tr>

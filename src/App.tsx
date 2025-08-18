@@ -127,6 +127,10 @@ function App() {
       header: 'Name',
       enableSorting: true,
       enableColumnFilter: true,
+      enableResizing: true,
+      size: 200,
+      minSize: 100,
+      maxSize: 400,
     },
     {
       id: 'email',
@@ -134,6 +138,10 @@ function App() {
       header: 'Email',
       enableSorting: true,
       enableColumnFilter: true,
+      enableResizing: true,
+      size: 250,
+      minSize: 150,
+      maxSize: 400,
     },
     {
       id: 'role',
@@ -141,6 +149,10 @@ function App() {
       header: 'Role',
       enableSorting: true,
       enableColumnFilter: true,
+      enableResizing: true,
+      size: 180,
+      minSize: 120,
+      maxSize: 300,
     },
     {
       id: 'department',
@@ -148,6 +160,10 @@ function App() {
       header: 'Department',
       enableSorting: true,
       enableColumnFilter: true,
+      enableResizing: true,
+      size: 150,
+      minSize: 100,
+      maxSize: 250,
     },
     {
       id: 'status',
@@ -155,6 +171,10 @@ function App() {
       header: 'Status',
       enableSorting: true,
       enableColumnFilter: true,
+      enableResizing: true,
+      size: 120,
+      minSize: 80,
+      maxSize: 150,
       cell: ({ getValue }) => {
         const status = getValue() as string
         return (
@@ -176,6 +196,10 @@ function App() {
       header: 'Join Date',
       enableSorting: true,
       enableColumnFilter: true,
+      enableResizing: true,
+      size: 130,
+      minSize: 100,
+      maxSize: 180,
       cell: ({ getValue }) => {
         const date = getValue() as string
         return new Date(date).toLocaleDateString()
@@ -186,6 +210,8 @@ function App() {
       header: 'Actions',
       enableSorting: false,
       enableColumnFilter: false,
+      enableResizing: false,
+      size: 80,
       cell: ({ row }) => (
         <Button 
           variant="ghost" 
