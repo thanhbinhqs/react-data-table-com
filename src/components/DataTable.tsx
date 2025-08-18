@@ -111,6 +111,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuLabel,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 
 export interface RowAction<TData> {
   label: string
@@ -135,6 +144,21 @@ export interface BulkAction<TData> {
   confirmMessage?: string
 }
 
+export interface ContextMenuItem<TData> {
+  label: string
+  icon?: React.ComponentType<any>
+  onClick: (row: TData) => void
+  variant?: 'default' | 'destructive'
+  disabled?: (row: TData) => boolean
+  hidden?: (row: TData) => boolean
+  shortcut?: string
+}
+
+export interface ContextMenuGroup<TData> {
+  label?: string
+  items: ContextMenuItem<TData>[]
+}
+
 export interface DataTableProps<TData> {
   data: TData[]
   columns: ColumnDef<TData>[]
@@ -151,6 +175,7 @@ export interface DataTableProps<TData> {
   onSelectionChange?: (selectedRows: TData[]) => void
   rowActions?: RowAction<TData>[] | RowActionGroup<TData>[]
   bulkActions?: BulkAction<TData>[]
+  contextMenu?: ContextMenuItem<TData>[] | ContextMenuGroup<TData>[]
 }
 
 interface FilterConfig {
@@ -176,6 +201,7 @@ export function DataTable<TData>({
   onSelectionChange,
   rowActions,
   bulkActions = [],
+  contextMenu,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -186,6 +212,99 @@ export function DataTable<TData>({
   const [filterValues, setFilterValues] = useState<Record<string, any>>({})
   const [columnResizeMode] = useState<ColumnResizeMode>('onChange')
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({})
+
+  // Helper function to render context menu content
+  const renderContextMenuContent = (row: Row<TData>) => {
+    if (!contextMenu || contextMenu.length === 0) return null
+
+    const isGrouped = contextMenu.some((item: any) => 'items' in item)
+    
+    if (isGrouped) {
+      const groups = contextMenu as ContextMenuGroup<TData>[]
+      return (
+        <>
+          {groups.map((group, groupIndex) => {
+            const visibleItems = group.items.filter(item => 
+              !item.hidden || !item.hidden(row.original)
+            )
+            
+            if (visibleItems.length === 0) return null
+            
+            return (
+              <div key={groupIndex}>
+                {group.label && (
+                  <ContextMenuLabel className="text-xs text-muted-foreground">
+                    {group.label}
+                  </ContextMenuLabel>
+                )}
+                {visibleItems.map((item, itemIndex) => {
+                  const Icon = item.icon
+                  const isDisabled = item.disabled?.(row.original) || false
+                  
+                  return (
+                    <ContextMenuItem
+                      key={itemIndex}
+                      onClick={() => !isDisabled && item.onClick(row.original)}
+                      disabled={isDisabled}
+                      className={cn(
+                        "text-xs",
+                        item.variant === 'destructive' && "text-destructive focus:text-destructive-foreground focus:bg-destructive"
+                      )}
+                    >
+                      {Icon && <Icon className="h-3 w-3 mr-2" />}
+                      {item.label}
+                      {item.shortcut && (
+                        <ContextMenuShortcut className="text-xs">
+                          {item.shortcut}
+                        </ContextMenuShortcut>
+                      )}
+                    </ContextMenuItem>
+                  )
+                })}
+                {groupIndex < groups.length - 1 && visibleItems.length > 0 && (
+                  <ContextMenuSeparator />
+                )}
+              </div>
+            )
+          })}
+        </>
+      )
+    } else {
+      const items = contextMenu as ContextMenuItem<TData>[]
+      const visibleItems = items.filter(item => 
+        !item.hidden || !item.hidden(row.original)
+      )
+      
+      return (
+        <>
+          {visibleItems.map((item, index) => {
+            const Icon = item.icon
+            const isDisabled = item.disabled?.(row.original) || false
+            
+            return (
+              <ContextMenuItem
+                key={index}
+                onClick={() => !isDisabled && item.onClick(row.original)}
+                disabled={isDisabled}
+                className={cn(
+                  "text-xs",
+                  item.variant === 'destructive' && "text-destructive focus:text-destructive-foreground focus:bg-destructive"
+                )}
+              >
+                {Icon && <Icon className="h-3 w-3 mr-2" />}
+                {item.label}
+                {item.shortcut && (
+                  <ContextMenuShortcut className="text-xs">
+                    {item.shortcut}
+                  </ContextMenuShortcut>
+                )}
+              </ContextMenuItem>
+            )
+          })}
+        </>
+      )
+    }
+  }
 
   // Generate filter configs from columns
   const filterConfigs = useMemo(() => {
@@ -962,86 +1081,104 @@ export function DataTable<TData>({
             </thead>
             <tbody>
               {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    data-state={row.getIsSelected() && 'selected'}
-                    className={cn(
-                      'group border-b transition-colors',
-                      // Base hover state for the entire row
-                      'hover:bg-muted/30',
-                      onRowClick && 'cursor-pointer',
-                      'data-[state=selected]:bg-muted'
-                    )}
-                    onClick={(e) => {
-                      // Don't trigger row click if clicking on checkbox or action buttons
-                      if (e.target instanceof HTMLElement && 
-                          (e.target.closest('[role="checkbox"]') || 
-                           e.target.closest('button') || 
-                           e.target.closest('a'))) {
-                        return
-                      }
-                      
-                      // If selectable, toggle selection on cell click
-                      if (selectable) {
-                        row.toggleSelected()
-                      }
-                      
-                      // Also call the onRowClick handler if provided
-                      onRowClick?.(row)
-                    }}
-                  >
-                    {row.getVisibleCells().map((cell) => {
-                      const isPinned = cell.column.getIsPinned()
-                      const pinnedPosition = isPinned === 'left' 
-                        ? `${cell.column.getStart('left')}px`
-                        : isPinned === 'right'
-                        ? `${cell.column.getAfter('right')}px`
-                        : undefined
+                table.getRowModel().rows.map((row) => {
+                  const RowComponent = (
+                    <tr
+                      key={row.id}
+                      data-state={row.getIsSelected() && 'selected'}
+                      className={cn(
+                        'group border-b transition-colors',
+                        // Base hover state for the entire row
+                        'hover:bg-muted/30',
+                        onRowClick && 'cursor-pointer',
+                        'data-[state=selected]:bg-muted'
+                      )}
+                      onClick={(e) => {
+                        // Don't trigger row click if clicking on checkbox or action buttons
+                        if (e.target instanceof HTMLElement && 
+                            (e.target.closest('[role="checkbox"]') || 
+                             e.target.closest('button') || 
+                             e.target.closest('a'))) {
+                          return
+                        }
+                        
+                        // If selectable, toggle selection on cell click
+                        if (selectable) {
+                          row.toggleSelected()
+                        }
+                        
+                        // Also call the onRowClick handler if provided
+                        onRowClick?.(row)
+                      }}
+                    >
+                      {row.getVisibleCells().map((cell) => {
+                        const isPinned = cell.column.getIsPinned()
+                        const pinnedPosition = isPinned === 'left' 
+                          ? `${cell.column.getStart('left')}px`
+                          : isPinned === 'right'
+                          ? `${cell.column.getAfter('right')}px`
+                          : undefined
 
-                      return (
-                        <td 
-                          key={cell.id} 
-                          className={cn(
-                            "px-2 py-0.5 align-middle border-r border-border/30 last:border-r-0",
-                            // Base hover styles for non-pinned columns
-                            !isPinned && "group-hover:bg-muted/50",
-                            // Pinned column styles with higher z-index and solid background
-                            isPinned && sticky && "sticky z-50 bg-background/100 border-l border-border/20",
-                            // Pinned column hover styles - use solid background to prevent blur
-                            isPinned && sticky && "group-hover:bg-muted/100",
-                            isPinned === 'left' && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]",
-                            isPinned === 'right' && "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.1)]",
-                            selectable && cell.column.id !== 'select' && cell.column.id !== 'rowNumber' && "cursor-pointer"
-                          )}
-                          style={{ 
-                            width: cell.column.getSize(),
-                            maxWidth: cell.column.getSize(),
-                            minWidth: cell.column.getSize(),
-                            left: isPinned === 'left' && sticky ? pinnedPosition : undefined,
-                            right: isPinned === 'right' && sticky ? pinnedPosition : undefined,
-                          }}
-                          onClick={(e) => {
-                            // Handle cell click for selection toggle (except for select, rowNumber columns and action buttons)
-                            if (selectable && 
-                                cell.column.id !== 'select' && 
-                                cell.column.id !== 'rowNumber' &&
-                                !(e.target as HTMLElement)?.closest('button') && 
-                                !(e.target as HTMLElement)?.closest('a') &&
-                                !(e.target as HTMLElement)?.closest('[role="checkbox"]')) {
-                              e.stopPropagation()
-                              row.toggleSelected()
-                            }
-                          }}
-                        >
-                          <div className="truncate text-xs leading-none whitespace-nowrap overflow-hidden text-ellipsis">
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </div>
-                        </td>
-                      )
-                    })}
-                  </tr>
-                ))
+                        return (
+                          <td 
+                            key={cell.id} 
+                            className={cn(
+                              "px-2 py-0.5 align-middle border-r border-border/30 last:border-r-0",
+                              // Base hover styles for non-pinned columns
+                              !isPinned && "group-hover:bg-muted/50",
+                              // Pinned column styles with higher z-index and solid background
+                              isPinned && sticky && "sticky z-50 bg-background/100 border-l border-border/20",
+                              // Pinned column hover styles - use solid background to prevent blur
+                              isPinned && sticky && "group-hover:bg-muted/100",
+                              isPinned === 'left' && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]",
+                              isPinned === 'right' && "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.1)]",
+                              selectable && cell.column.id !== 'select' && cell.column.id !== 'rowNumber' && "cursor-pointer"
+                            )}
+                            style={{ 
+                              width: cell.column.getSize(),
+                              maxWidth: cell.column.getSize(),
+                              minWidth: cell.column.getSize(),
+                              left: isPinned === 'left' && sticky ? pinnedPosition : undefined,
+                              right: isPinned === 'right' && sticky ? pinnedPosition : undefined,
+                            }}
+                            onClick={(e) => {
+                              // Handle cell click for selection toggle (except for select, rowNumber columns and action buttons)
+                              if (selectable && 
+                                  cell.column.id !== 'select' && 
+                                  cell.column.id !== 'rowNumber' &&
+                                  !(e.target as HTMLElement)?.closest('button') && 
+                                  !(e.target as HTMLElement)?.closest('a') &&
+                                  !(e.target as HTMLElement)?.closest('[role="checkbox"]')) {
+                                e.stopPropagation()
+                                row.toggleSelected()
+                              }
+                            }}
+                          >
+                            <div className="truncate text-xs leading-none whitespace-nowrap overflow-hidden text-ellipsis">
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </div>
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  )
+
+                  // Wrap with context menu if contextMenu prop is provided
+                  if (contextMenu && contextMenu.length > 0) {
+                    return (
+                      <ContextMenu key={row.id}>
+                        <ContextMenuTrigger asChild>
+                          {RowComponent}
+                        </ContextMenuTrigger>
+                        <ContextMenuContent className="w-48">
+                          {renderContextMenuContent(row)}
+                        </ContextMenuContent>
+                      </ContextMenu>
+                    )
+                  }
+
+                  return RowComponent
+                })
               ) : (
                 <tr>
                   <td colSpan={tableColumns.length} className="h-24 text-center text-muted-foreground">

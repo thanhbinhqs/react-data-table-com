@@ -1,11 +1,11 @@
 import { useMemo, useCallback, useState } from 'react'
 import { ColumnDef, ColumnFiltersState } from '@tanstack/react-table'
-import { DataTable, RowAction, RowActionGroup, BulkAction } from '@/components/DataTable'
+import { DataTable, RowAction, RowActionGroup, BulkAction, ContextMenuItem, ContextMenuGroup } from '@/components/DataTable'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { Eye, PencilSimple, Trash, UserCheck, UserX, Copy, Users, Shield, Archive, Download } from '@phosphor-icons/react'
+import { Eye, PencilSimple, Trash, UserCheck, UserX, Copy, Users, Shield, Archive, Download, Clipboard, Phone, EnvelopeSimple } from '@phosphor-icons/react'
 
 interface User {
   id: string
@@ -363,6 +363,104 @@ function App() {
     },
   ], [])
 
+  // Context menu configuration
+  const contextMenuItems = useMemo<ContextMenuGroup<User>[]>(() => [
+    {
+      label: 'Quick Actions',
+      items: [
+        {
+          label: 'View Details',
+          icon: Eye,
+          onClick: (user) => {
+            alert(`View details for ${user.name}`)
+          },
+          shortcut: '⌘V',
+        },
+        {
+          label: 'Edit User',
+          icon: PencilSimple,
+          onClick: (user) => {
+            alert(`Edit user: ${user.name}`)
+          },
+          shortcut: '⌘E',
+        },
+        {
+          label: 'Copy Email',
+          icon: EnvelopeSimple,
+          onClick: (user) => {
+            navigator.clipboard.writeText(user.email)
+            alert(`Copied email: ${user.email}`)
+          },
+          shortcut: '⌘C',
+        },
+      ]
+    },
+    {
+      label: 'Contact',
+      items: [
+        {
+          label: 'Send Email',
+          icon: EnvelopeSimple,
+          onClick: (user) => {
+            window.open(`mailto:${user.email}`)
+          },
+        },
+        {
+          label: 'Copy Contact Info',
+          icon: Clipboard,
+          onClick: (user) => {
+            const contactInfo = `${user.name} <${user.email}>`
+            navigator.clipboard.writeText(contactInfo)
+            alert(`Copied contact info: ${contactInfo}`)
+          },
+        },
+      ]
+    },
+    {
+      label: 'Status Management',
+      items: [
+        {
+          label: 'Activate User',
+          icon: UserCheck,
+          onClick: (user) => {
+            alert(`Activating user: ${user.name}`)
+          },
+          hidden: (user) => user.status === 'active',
+        },
+        {
+          label: 'Deactivate User',
+          icon: UserX,
+          onClick: (user) => {
+            alert(`Deactivating user: ${user.name}`)
+          },
+          hidden: (user) => user.status !== 'active',
+        },
+        {
+          label: 'Archive User',
+          icon: Archive,
+          variant: 'destructive',
+          onClick: (user) => {
+            if (confirm(`Are you sure you want to archive ${user.name}?`)) {
+              alert(`Archived user: ${user.name}`)
+            }
+          },
+        },
+        {
+          label: 'Delete User',
+          icon: Trash,
+          variant: 'destructive',
+          onClick: (user) => {
+            if (confirm(`Are you sure you want to delete ${user.name}?`)) {
+              alert(`Deleted user: ${user.name}`)
+            }
+          },
+          disabled: (user) => user.role === 'Manager', // Managers cannot be deleted
+          shortcut: '⌘⌫',
+        },
+      ]
+    }
+  ], [])
+
   const handleRowClick = useCallback((row: any) => {
     console.log('Row clicked:', row.original)
   }, [])
@@ -443,6 +541,7 @@ function App() {
           sticky={stickyHeader}
           rowActions={rowActions}
           bulkActions={bulkActions}
+          contextMenu={contextMenuItems}
         />
       </main>
     </div>
