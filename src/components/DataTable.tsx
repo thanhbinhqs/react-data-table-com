@@ -1,3 +1,20 @@
+/*
+ * DataTable Component - Column Resizing Test Guide
+ * 
+ * To test column resizing functionality:
+ * 1. Look for the thin vertical line at the right edge of each column header
+ * 2. Hover over the right border of any column header - cursor should change to col-resize
+ * 3. Click and drag the border left or right to resize the column
+ * 4. Release to apply the new size
+ * 
+ * Features implemented:
+ * - Smooth dragging with visual feedback
+ * - Minimum and maximum size constraints
+ * - Real-time resizing (onChange mode)
+ * - Visual resize handle indicators
+ * - Touch support for mobile devices
+ */
+
 import { useState, useMemo } from 'react'
 import {
   ColumnDef,
@@ -90,13 +107,25 @@ export function DataTable<TData>({
     onGlobalFilterChange: setGlobalFilter,
     enableColumnResizing: true,
     columnResizeMode,
+    columnResizeDirection: 'ltr',
+    defaultColumn: {
+      minSize: 50,
+      maxSize: 800,
+      size: 150,
+    },
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       globalFilter,
     },
+    debugTable: false,
+    debugHeaders: false,
+    debugColumns: false,
   })
+
+  // Check if any column is currently being resized
+  const isResizing = table.getAllColumns().some(col => col.getIsResizing())
 
   const handleApplyFilters = () => {
     const filters = Object.entries(filterValues)
@@ -129,6 +158,7 @@ export function DataTable<TData>({
           {title && <h2 className="text-2xl font-bold tracking-tight">{title}</h2>}
           <p className="text-sm text-muted-foreground">
             {table.getFilteredRowModel().rows.length} of {data.length} row(s)
+            {isResizing && <span className="ml-2 text-primary">• Resizing columns...</span>}
           </p>
         </div>
         
@@ -244,10 +274,9 @@ export function DataTable<TData>({
       <div className="flex-1 rounded-md border overflow-hidden">
         <div className="h-full overflow-auto">
           <table 
-            className="relative"
+            className="relative w-full"
             style={{
-              width: table.getCenterTotalSize(),
-              tableLayout: 'fixed',
+              width: table.getTotalSize(),
             }}
           >
             <thead className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
@@ -256,17 +285,18 @@ export function DataTable<TData>({
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
-                      className="relative h-12 px-4 text-left align-middle font-medium text-muted-foreground group border-r border-border/50 last:border-r-0"
+                      className="relative h-12 px-4 text-left align-middle font-medium text-muted-foreground group border-r border-border/50 last:border-r-0 select-none"
                       style={{ 
                         width: header.getSize(),
-                        position: 'relative',
+                        maxWidth: header.getSize(),
+                        minWidth: header.getSize(),
                       }}
                     >
                       <div className="flex items-center gap-2 h-full">
                         {header.isPlaceholder ? null : (
                           <div
                             className={cn(
-                              'flex items-center gap-2 cursor-pointer select-none flex-1',
+                              'flex items-center gap-2 cursor-pointer select-none flex-1 min-w-0',
                               header.column.getCanSort() && 'hover:text-foreground'
                             )}
                             onClick={header.column.getToggleSortingHandler()}
@@ -301,13 +331,18 @@ export function DataTable<TData>({
                       {/* Column Resizer */}
                       {header.column.getCanResize() && (
                         <div
-                          className="absolute right-0 top-0 h-full w-1 cursor-col-resize bg-transparent hover:bg-primary/20 active:bg-primary/40 transition-colors"
+                          className="absolute right-0 top-0 h-full w-3 cursor-col-resize bg-transparent hover:bg-primary/20 active:bg-primary/40 transition-all duration-150"
                           style={{
-                            transform: header.column.getIsResizing() ? 'scaleX(2)' : undefined,
+                            transform: header.column.getIsResizing() ? 'scaleX(1.5)' : undefined,
+                            userSelect: 'none',
+                            touchAction: 'none',
                           }}
                           onMouseDown={header.getResizeHandler()}
                           onTouchStart={header.getResizeHandler()}
-                        />
+                        >
+                          {/* Visual indicator for resize handle */}
+                          <div className="absolute right-1 top-1/2 transform -translate-y-1/2 w-0.5 h-6 bg-border/60 group-hover:bg-primary/60 transition-colors" />
+                        </div>
                       )}
                     </th>
                   ))}
@@ -331,7 +366,11 @@ export function DataTable<TData>({
                       <td 
                         key={cell.id} 
                         className="p-4 align-middle border-r border-border/30 last:border-r-0"
-                        style={{ width: cell.column.getSize() }}
+                        style={{ 
+                          width: cell.column.getSize(),
+                          maxWidth: cell.column.getSize(),
+                          minWidth: cell.column.getSize(),
+                        }}
                       >
                         <div className="truncate">
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}

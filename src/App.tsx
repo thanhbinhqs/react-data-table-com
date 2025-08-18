@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useCallback } from 'react'
 import { ColumnDef, ColumnFiltersState } from '@tanstack/react-table'
 import { DataTable } from '@/components/DataTable'
 import { Badge } from '@/components/ui/badge'
@@ -227,17 +227,17 @@ function App() {
     },
   ], [])
 
-  const handleRowClick = (row: any) => {
+  const handleRowClick = useCallback((row: any) => {
     console.log('Row clicked:', row.original)
-  }
+  }, [])
 
-  const handleFilterApply = (filters: ColumnFiltersState) => {
+  const handleFilterApply = useCallback((filters: ColumnFiltersState) => {
     console.log('Filters applied:', filters)
-  }
+  }, [])
 
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     console.log('Filters cleared')
-  }
+  }, [])
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
