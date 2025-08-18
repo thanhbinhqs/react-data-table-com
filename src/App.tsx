@@ -1,11 +1,11 @@
 import { useMemo, useCallback, useState } from 'react'
 import { ColumnDef, ColumnFiltersState } from '@tanstack/react-table'
-import { DataTable, RowAction, RowActionGroup } from '@/components/DataTable'
+import { DataTable, RowAction, RowActionGroup, BulkAction } from '@/components/DataTable'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { Eye, PencilSimple, Trash, UserCheck, UserX, Copy } from '@phosphor-icons/react'
+import { Eye, PencilSimple, Trash, UserCheck, UserX, Copy, Users, Shield, Archive, Download } from '@phosphor-icons/react'
 
 interface User {
   id: string
@@ -282,6 +282,87 @@ function App() {
     }
   ], [])
 
+  // Bulk actions configuration
+  const bulkActions = useMemo<BulkAction<User>[]>(() => [
+    {
+      label: 'Activate Selected',
+      icon: UserCheck,
+      onClick: (users) => {
+        const inactiveUsers = users.filter(user => user.status !== 'active')
+        if (inactiveUsers.length === 0) {
+          alert('All selected users are already active')
+          return
+        }
+        alert(`Activated ${inactiveUsers.length} user${inactiveUsers.length !== 1 ? 's' : ''}`)
+      },
+      disabled: (users) => users.every(user => user.status === 'active'),
+    },
+    {
+      label: 'Deactivate Selected',
+      icon: UserX,
+      onClick: (users) => {
+        const activeUsers = users.filter(user => user.status === 'active')
+        if (activeUsers.length === 0) {
+          alert('No active users selected')
+          return
+        }
+        alert(`Deactivated ${activeUsers.length} user${activeUsers.length !== 1 ? 's' : ''}`)
+      },
+      disabled: (users) => users.every(user => user.status !== 'active'),
+    },
+    {
+      label: 'Change Department',
+      icon: Users,
+      onClick: (users) => {
+        const department = prompt('Enter new department:')
+        if (department) {
+          alert(`Changed department to "${department}" for ${users.length} user${users.length !== 1 ? 's' : ''}`)
+        }
+      },
+    },
+    {
+      label: 'Export Selected',
+      icon: Download,
+      onClick: (users) => {
+        const csvContent = [
+          'Name,Email,Role,Department,Status,Join Date',
+          ...users.map(user => 
+            `"${user.name}","${user.email}","${user.role}","${user.department}","${user.status}","${user.joinDate}"`
+          )
+        ].join('\n')
+        
+        const blob = new Blob([csvContent], { type: 'text/csv' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `selected-users-${new Date().toISOString().split('T')[0]}.csv`
+        a.click()
+        URL.revokeObjectURL(url)
+        
+        alert(`Exported ${users.length} user${users.length !== 1 ? 's' : ''} to CSV`)
+      },
+    },
+    {
+      label: 'Archive Selected',
+      icon: Archive,
+      variant: 'destructive',
+      onClick: (users) => {
+        alert(`Archived ${users.length} user${users.length !== 1 ? 's' : ''}`)
+      },
+      confirmMessage: 'Are you sure you want to archive {count} selected user(s)? This action cannot be undone.',
+    },
+    {
+      label: 'Delete Selected',
+      icon: Trash,
+      variant: 'destructive',
+      onClick: (users) => {
+        alert(`Deleted ${users.length} user${users.length !== 1 ? 's' : ''}`)
+      },
+      confirmMessage: 'Are you sure you want to permanently delete {count} selected user(s)? This action cannot be undone.',
+      disabled: (users) => users.some(user => user.role === 'Manager'), // Cannot delete managers
+    },
+  ], [])
+
   const handleRowClick = useCallback((row: any) => {
     console.log('Row clicked:', row.original)
   }, [])
@@ -361,6 +442,7 @@ function App() {
           spin={isLoading}
           sticky={stickyHeader}
           rowActions={rowActions}
+          bulkActions={bulkActions}
         />
       </main>
     </div>

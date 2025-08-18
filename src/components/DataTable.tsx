@@ -126,6 +126,15 @@ export interface RowActionGroup<TData> {
   actions: RowAction<TData>[]
 }
 
+export interface BulkAction<TData> {
+  label: string
+  icon?: React.ComponentType<any>
+  onClick: (selectedRows: TData[]) => void
+  variant?: 'default' | 'destructive'
+  disabled?: (selectedRows: TData[]) => boolean
+  confirmMessage?: string
+}
+
 export interface DataTableProps<TData> {
   data: TData[]
   columns: ColumnDef<TData>[]
@@ -141,6 +150,7 @@ export interface DataTableProps<TData> {
   selectable?: boolean
   onSelectionChange?: (selectedRows: TData[]) => void
   rowActions?: RowAction<TData>[] | RowActionGroup<TData>[]
+  bulkActions?: BulkAction<TData>[]
 }
 
 interface FilterConfig {
@@ -165,6 +175,7 @@ export function DataTable<TData>({
   selectable = false,
   onSelectionChange,
   rowActions,
+  bulkActions = [],
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -712,6 +723,55 @@ export function DataTable<TData>({
           )}
         </div>
       </div>
+
+      {/* Bulk Actions Toolbar */}
+      {selectable && bulkActions.length > 0 && selectedRowsData.length > 0 && (
+        <div className="flex items-center justify-between px-4 py-2 bg-primary/5 border border-primary/20 rounded-md mb-2 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-primary">
+              {selectedRowsData.length} row{selectedRowsData.length !== 1 ? 's' : ''} selected
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {bulkActions.map((action, index) => {
+              const Icon = action.icon
+              const isDisabled = action.disabled?.(selectedRowsData) || false
+              
+              const handleClick = () => {
+                if (action.confirmMessage) {
+                  if (confirm(action.confirmMessage.replace('{count}', selectedRowsData.length.toString()))) {
+                    action.onClick(selectedRowsData)
+                  }
+                } else {
+                  action.onClick(selectedRowsData)
+                }
+              }
+              
+              return (
+                <Button
+                  key={index}
+                  variant={action.variant || 'outline'}
+                  size="sm"
+                  onClick={handleClick}
+                  disabled={isDisabled}
+                  className="h-7 text-xs"
+                >
+                  {Icon && <Icon className="h-3 w-3 mr-1" />}
+                  {action.label}
+                </Button>
+              )
+            })}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setRowSelection({})}
+              className="h-7 text-xs"
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Table Container - Scrollable */}
       <div className="flex-1 rounded-md border overflow-hidden relative">
