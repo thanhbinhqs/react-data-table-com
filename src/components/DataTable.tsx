@@ -17,17 +17,24 @@
  *    - Right pin icon: Pin column to the right side
  * 3. Pinned columns will remain visible while scrolling horizontally
  * 4. Use "Unpin All" to quickly remove all column pinning
- * 5. Selection column is always pinned to the left when enabled
+ * 5. Selection column and row numbers are always pinned to the left when enabled
  * 
  * ROW SELECTION:
  * 1. Enable by setting `selectable={true}` prop
  * 2. Selection column is automatically pinned to the left
  * 3. Click individual checkboxes to select specific rows
- * 4. Click on any cell (except action buttons) to toggle row selection
+ * 4. Click on any cell (except action buttons, row numbers) to toggle row selection
  * 5. Use the header checkbox to select/deselect all visible rows
  * 6. Selection persists through filtering and sorting
  * 7. Clear selection using the "X" button in the selection indicator
  * 8. Access selected data via `onSelectionChange` callback
+ * 
+ * ROW NUMBERING:
+ * 1. Automatic row numbering column is always present
+ * 2. Shows sequential numbers starting from 1
+ * 3. Numbers adjust automatically when data is filtered
+ * 4. Always pinned to the left, positioned after selection column
+ * 5. Cannot be hidden, resized, or moved
  * 
  * NEW PROPS:
  * - spin: boolean - Shows a loading spinner overlay when true
@@ -51,6 +58,7 @@
  * - Always left-pinned selection column
  * - Select all functionality
  * - Selection state management and callbacks
+ * - Automatic row numbering with filtering awareness
  */
 
 import { useState, useMemo } from 'react'
@@ -148,40 +156,69 @@ export function DataTable<TData>({
       }))
   }, [columns])
 
-  // Create columns with selection column if selectable
+  // Create columns with selection and row number columns
   const tableColumns = useMemo(() => {
-    if (!selectable) return columns
+    const extraColumns: ColumnDef<TData>[] = []
 
-    const selectionColumn: ColumnDef<TData> = {
-      id: 'select',
-      header: ({ table }) => (
-        <Checkbox
-          checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && "indeterminate")
-          }
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-          onClick={(e) => e.stopPropagation()}
-        />
-      ),
+    // Add selection column if selectable
+    if (selectable) {
+      const selectionColumn: ColumnDef<TData> = {
+        id: 'select',
+        header: ({ table }) => (
+          <Checkbox
+            checked={
+              table.getIsAllPageRowsSelected() ||
+              (table.getIsSomePageRowsSelected() && "indeterminate")
+            }
+            onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+            aria-label="Select all"
+          />
+        ),
+        cell: ({ row }) => (
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label="Select row"
+            onClick={(e) => e.stopPropagation()}
+          />
+        ),
+        enableSorting: false,
+        enableHiding: false,
+        enableResizing: false,
+        enablePinning: false, // Disable pinning since it's always pinned left
+        size: 50,
+        minSize: 50,
+        maxSize: 50,
+      }
+      extraColumns.push(selectionColumn)
+    }
+
+    // Add row number column - always present
+    const rowNumberColumn: ColumnDef<TData> = {
+      id: 'rowNumber',
+      header: 'No.',
+      cell: ({ row, table }) => {
+        // Get the index from filtered rows to maintain correct numbering after filtering
+        const filteredRows = table.getFilteredRowModel().rows
+        const index = filteredRows.findIndex(r => r.id === row.id)
+        return (
+          <div className="text-center text-muted-foreground font-mono text-sm">
+            {index + 1}
+          </div>
+        )
+      },
       enableSorting: false,
       enableHiding: false,
       enableResizing: false,
+      enableColumnFilter: false,
       enablePinning: false, // Disable pinning since it's always pinned left
-      size: 50,
-      minSize: 50,
-      maxSize: 50,
+      size: 60,
+      minSize: 60,
+      maxSize: 60,
     }
+    extraColumns.push(rowNumberColumn)
 
-    return [selectionColumn, ...columns]
+    return [...extraColumns, ...columns]
   }, [columns, selectable])
 
   const table = useReactTable({
@@ -217,9 +254,12 @@ export function DataTable<TData>({
       columnPinning: selectable 
         ? { 
             ...columnPinning,
-            left: ['select', ...(columnPinning.left || []).filter(id => id !== 'select')] 
-          } // Always pin selection column to left, preserve other left pins
-        : columnPinning,
+            left: ['select', 'rowNumber', ...(columnPinning.left || []).filter(id => id !== 'select' && id !== 'rowNumber')] 
+          } // Always pin selection and rowNumber columns to left, preserve other left pins
+        : { 
+            ...columnPinning,
+            left: ['rowNumber', ...(columnPinning.left || []).filter(id => id !== 'rowNumber')] 
+          }, // Always pin rowNumber column to left
       rowSelection,
       globalFilter,
     },
@@ -378,8 +418,8 @@ export function DataTable<TData>({
                             </Label>
                           </div>
                           
-                          {/* Pin Controls - Hide for selection column */}
-                          {column.getIsVisible() && column.getCanPin() && column.id !== 'select' && (
+                          {/* Pin Controls - Hide for selection and rowNumber columns */}
+                          {column.getIsVisible() && column.getCanPin() && column.id !== 'select' && column.id !== 'rowNumber' && (
                             <div className="flex items-center gap-1">
                               <Button
                                 variant="ghost"
@@ -420,10 +460,15 @@ export function DataTable<TData>({
                             </div>
                           )}
                           
-                          {/* Selection column indicator */}
+                          {/* Selection and row number column indicators */}
                           {column.id === 'select' && (
                             <div className="text-xs text-muted-foreground">
                               Always pinned left
+                            </div>
+                          )}
+                          {column.id === 'rowNumber' && (
+                            <div className="text-xs text-muted-foreground">
+                              Row numbers - pinned left
                             </div>
                           )}
                         </div>
@@ -660,7 +705,7 @@ export function DataTable<TData>({
                             isPinned && sticky && "sticky z-10 bg-background group-hover:bg-muted/50",
                             isPinned === 'left' && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.05)]",
                             isPinned === 'right' && "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.05)]",
-                            selectable && cell.column.id !== 'select' && "cursor-pointer"
+                            selectable && cell.column.id !== 'select' && cell.column.id !== 'rowNumber' && "cursor-pointer"
                           )}
                           style={{ 
                             width: cell.column.getSize(),
@@ -670,9 +715,10 @@ export function DataTable<TData>({
                             right: isPinned === 'right' && sticky ? pinnedPosition : undefined,
                           }}
                           onClick={(e) => {
-                            // Handle cell click for selection toggle (except for select column and action buttons)
+                            // Handle cell click for selection toggle (except for select, rowNumber columns and action buttons)
                             if (selectable && 
                                 cell.column.id !== 'select' && 
+                                cell.column.id !== 'rowNumber' &&
                                 !(e.target as HTMLElement)?.closest('button') && 
                                 !(e.target as HTMLElement)?.closest('a') &&
                                 !(e.target as HTMLElement)?.closest('[role="checkbox"]')) {
