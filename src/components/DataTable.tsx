@@ -80,6 +80,7 @@ import {
   ColumnResizeMode,
   ColumnPinningState,
   RowSelectionState,
+  ColumnSizingState,
 } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -148,6 +149,7 @@ export function DataTable<TData>({
   const [globalFilter, setGlobalFilter] = useState('')
   const [filterValues, setFilterValues] = useState<Record<string, any>>({})
   const [columnResizeMode] = useState<ColumnResizeMode>('onChange')
+  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({})
 
   // Generate filter configs from columns
   const filterConfigs = useMemo(() => {
@@ -241,6 +243,7 @@ export function DataTable<TData>({
     onColumnPinningChange: setColumnPinning,
     onRowSelectionChange: setRowSelection,
     onGlobalFilterChange: setGlobalFilter,
+    onColumnSizingChange: setColumnSizing,
     enableRowSelection: selectable,
     enableColumnResizing: true,
     enableColumnPinning: true,
@@ -266,6 +269,7 @@ export function DataTable<TData>({
           }, // Always pin rowNumber column to left
       rowSelection,
       globalFilter,
+      columnSizing,
     },
     debugTable: false,
     debugHeaders: false,
@@ -706,7 +710,11 @@ export function DataTable<TData>({
                               const maxSize = column.columnDef.maxSize || 800
                               const finalWidth = Math.min(Math.max(maxWidth, minSize), maxSize)
                               
-                              column.setSize(finalWidth)
+                              // Update column sizing using the table's setter
+                              setColumnSizing(prev => ({
+                                ...prev,
+                                [columnId]: finalWidth
+                              }))
                             }}
                             title="Drag to resize • Double-click to auto-fit"
                           >
