@@ -148,7 +148,7 @@ function App() {
       enablePinning: true,
       size: 250,
       minSize: 150,
-      maxSize: 400,
+      maxSize: 1400,
     },
     {
       id: 'role',
