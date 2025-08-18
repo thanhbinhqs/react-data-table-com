@@ -569,6 +569,7 @@ export function DataTable<TData>({
             className="relative w-full"
             style={{
               width: table.getTotalSize(),
+              isolation: 'isolate',
             }}
           >
             <thead className={cn(
@@ -590,7 +591,7 @@ export function DataTable<TData>({
                         key={header.id}
                         className={cn(
                           "relative h-12 px-4 text-left align-middle font-medium text-muted-foreground group border-r border-border/50 last:border-r-0 select-none",
-                          isPinned && sticky && "sticky z-[60] bg-background shadow-sm border-l border-border/30",
+                          isPinned && sticky && "sticky z-[70] bg-background/100 shadow-sm border-l border-border/30",
                           isPinned === 'left' && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]",
                           isPinned === 'right' && "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.15)]"
                         )}
@@ -735,7 +736,9 @@ export function DataTable<TData>({
                     key={row.id}
                     data-state={row.getIsSelected() && 'selected'}
                     className={cn(
-                      'group border-b transition-colors hover:bg-muted/50',
+                      'group border-b transition-colors',
+                      // Base hover state for the entire row
+                      'hover:bg-muted/30',
                       onRowClick && 'cursor-pointer',
                       'data-[state=selected]:bg-muted'
                     )}
@@ -769,9 +772,13 @@ export function DataTable<TData>({
                         <td 
                           key={cell.id} 
                           className={cn(
-                            "p-4 align-middle border-r border-border/30 last:border-r-0 group-hover:bg-muted/50",
-                            isPinned && sticky && "sticky z-40 bg-background border-l border-border/20 group-hover:bg-muted/60",
-                            isPinned && sticky && "focus-within:z-[60] focus-within:bg-background focus-within:shadow-lg",
+                            "p-4 align-middle border-r border-border/30 last:border-r-0",
+                            // Base hover styles for non-pinned columns
+                            !isPinned && "group-hover:bg-muted/50",
+                            // Pinned column styles with higher z-index and solid background
+                            isPinned && sticky && "sticky z-50 bg-background/100 border-l border-border/20",
+                            // Pinned column hover styles - use solid background to prevent blur
+                            isPinned && sticky && "group-hover:bg-muted/100",
                             isPinned === 'left' && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]",
                             isPinned === 'right' && "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.1)]",
                             selectable && cell.column.id !== 'select' && cell.column.id !== 'rowNumber' && "cursor-pointer"
