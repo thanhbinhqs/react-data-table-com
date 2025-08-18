@@ -7,7 +7,9 @@
  * 1. Look for the thin vertical line at the right edge of each column header
  * 2. Hover over the right border of any column header - cursor should change to col-resize
  * 3. Click and drag the border left or right to resize the column
- * 4. Release to apply the new size
+ * 4. Double-click the resize handle to auto-fit column width to content
+ * 5. Release to apply the new size
+ * 6. All cell content is displayed in single lines with ellipsis for overflow
  * 
  * STICKY COLUMNS:
  * 1. Open the "Columns" panel from the top-right controls
@@ -44,6 +46,8 @@
  * 
  * Features implemented:
  * - Smooth column resizing with visual feedback
+ * - Double-click auto-sizing to fit content width
+ * - Single-line text display with ellipsis for overflow
  * - Minimum and maximum size constraints
  * - Real-time resizing (onChange mode)
  * - Visual resize handle indicators
@@ -202,7 +206,7 @@ export function DataTable<TData>({
         const filteredRows = table.getFilteredRowModel().rows
         const index = filteredRows.findIndex(r => r.id === row.id)
         return (
-          <div className="text-center text-muted-foreground font-mono text-sm">
+          <div className="text-center text-muted-foreground font-mono text-sm whitespace-nowrap overflow-hidden text-ellipsis">
             {index + 1}
           </div>
         )
@@ -649,6 +653,62 @@ export function DataTable<TData>({
                             }}
                             onMouseDown={header.getResizeHandler()}
                             onTouchStart={header.getResizeHandler()}
+                            onDoubleClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              
+                              // Auto-fit column width to content
+                              const column = header.column
+                              const columnId = column.id
+                              
+                              // Calculate the maximum content width for this column
+                              let maxWidth = 50 // minimum width
+                              
+                              // Check header text width
+                              const headerText = typeof column.columnDef.header === 'string' 
+                                ? column.columnDef.header 
+                                : columnId
+                              maxWidth = Math.max(maxWidth, headerText.length * 8 + 60) // approximate char width + padding
+                              
+                              // Check all visible row content widths
+                              const rows = table.getFilteredRowModel().rows
+                              rows.forEach(row => {
+                                const cell = row.getVisibleCells().find(c => c.column.id === columnId)
+                                if (cell) {
+                                  let cellText = ''
+                                  
+                                  // Get text content from cell
+                                  const cellValue = cell.getValue()
+                                  if (typeof cellValue === 'string') {
+                                    cellText = cellValue
+                                  } else if (typeof cellValue === 'number') {
+                                    cellText = cellValue.toString()
+                                  } else if (cellValue && typeof cellValue === 'object') {
+                                    cellText = JSON.stringify(cellValue)
+                                  }
+                                  
+                                  // Handle special cells like badges or formatted dates
+                                  if (columnId === 'status') {
+                                    cellText = cellValue as string || ''
+                                  } else if (columnId === 'joinDate') {
+                                    cellText = new Date(cellValue as string).toLocaleDateString()
+                                  } else if (columnId === 'rowNumber') {
+                                    cellText = '999' // assume max 3 digits for numbering
+                                  }
+                                  
+                                  const contentWidth = cellText.length * 8 + 32 // approximate char width + padding
+                                  maxWidth = Math.max(maxWidth, contentWidth)
+                                }
+                              })
+                              
+                              // Apply size constraints from column definition
+                              const minSize = column.columnDef.minSize || 50
+                              const maxSize = column.columnDef.maxSize || 800
+                              const finalWidth = Math.min(Math.max(maxWidth, minSize), maxSize)
+                              
+                              column.setSize(finalWidth)
+                            }}
+                            title="Drag to resize • Double-click to auto-fit"
                           >
                             {/* Visual indicator for resize handle */}
                             <div className="absolute right-1 top-1/2 transform -translate-y-1/2 w-0.5 h-6 bg-border/60 group-hover:bg-primary/60 transition-colors" />
@@ -727,7 +787,7 @@ export function DataTable<TData>({
                             }
                           }}
                         >
-                          <div className="truncate">
+                          <div className="truncate text-sm leading-none py-1 whitespace-nowrap overflow-hidden text-ellipsis">
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                           </div>
                         </td>
