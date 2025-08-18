@@ -58,15 +58,17 @@ function DatePicker({
         <Button
           variant="outline"
           className={cn(
-            "w-full justify-start text-left text-xs h-8 font-normal",
+            "w-full justify-start text-left text-xs h-8 font-normal px-2 min-w-0",
             !value && "text-muted-foreground"
           )}
         >
-          <CalendarIcon className="mr-2 h-3 w-3" />
-          {value ? format(value, "PPP") : placeholder}
+          <CalendarIcon className="mr-2 h-3 w-3 shrink-0" />
+          <span className="truncate min-w-0">
+            {value ? format(value, "MMM dd, yyyy") : placeholder}
+          </span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent className="w-auto p-0" align="start" sideOffset={4}>
         <Calendar
           mode="single"
           selected={value}
@@ -75,8 +77,9 @@ function DatePicker({
             setIsOpen(false)
           }}
           initialFocus
+          className="p-2"
         />
-        <div className="p-3 border-t border-border">
+        <div className="p-2 border-t border-border">
           <Button
             variant="outline"
             className="w-full text-xs h-7"
@@ -105,29 +108,49 @@ function DateRangePicker({
 }) {
   const [isOpen, setIsOpen] = useState(false)
 
+  const formatDateRange = (range?: DateRange) => {
+    if (!range?.from) return placeholder
+    
+    if (range.to) {
+      const fromYear = range.from.getFullYear()
+      const toYear = range.to.getFullYear()
+      const fromMonth = range.from.getMonth()
+      const toMonth = range.to.getMonth()
+      
+      // Same year
+      if (fromYear === toYear) {
+        // Same month - show compact format
+        if (fromMonth === toMonth) {
+          return `${format(range.from, "MMM dd")} - ${format(range.to, "dd, yyyy")}`
+        }
+        // Different months, same year
+        return `${format(range.from, "MMM dd")} - ${format(range.to, "MMM dd, yyyy")}`
+      }
+      // Different years - use short format
+      return `${format(range.from, "dd/MM/yy")} - ${format(range.to, "dd/MM/yy")}`
+    }
+    
+    // Only start date selected
+    return `${format(range.from, "MMM dd, yyyy")} →`
+  }
+
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
           className={cn(
-            "w-full justify-start text-left text-xs h-8 font-normal",
-            !value && "text-muted-foreground"
+            "w-full justify-start text-left text-xs h-8 font-normal px-2 min-w-0",
+            !value?.from && "text-muted-foreground"
           )}
         >
-          <CalendarIcon className="mr-2 h-3 w-3" />
-          {value?.from ? (
-            value.to ? (
-              `${format(value.from, "LLL dd")} - ${format(value.to, "LLL dd")}`
-            ) : (
-              format(value.from, "LLL dd, y")
-            )
-          ) : (
-            placeholder
-          )}
+          <CalendarIcon className="mr-2 h-3 w-3 shrink-0" />
+          <span className="truncate min-w-0">
+            {formatDateRange(value)}
+          </span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent className="w-auto p-0" align="start" sideOffset={4}>
         <Calendar
           mode="range"
           defaultMonth={value?.from}
@@ -140,8 +163,9 @@ function DateRangePicker({
           }}
           numberOfMonths={2}
           initialFocus
+          className="p-2"
         />
-        <div className="p-3 border-t border-border">
+        <div className="p-2 border-t border-border">
           <Button
             variant="outline"
             className="w-full text-xs h-7"
