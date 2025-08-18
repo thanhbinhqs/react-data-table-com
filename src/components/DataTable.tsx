@@ -933,7 +933,7 @@ export function DataTable<TData>({
                         key={header.id}
                         className={cn(
                           "relative h-5 px-2 text-left align-middle font-medium text-muted-foreground group border-r border-border/50 last:border-r-0 select-none text-xs",
-                          isPinned && sticky && "sticky z-[70] bg-background/100 shadow-sm border-l border-border/30",
+                          isPinned && sticky && "sticky z-[70] border-l border-border/30",
                           isPinned === 'left' && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]",
                           isPinned === 'right' && "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.15)]",
                           header.column.id === 'select' && "text-center",
@@ -945,6 +945,8 @@ export function DataTable<TData>({
                           minWidth: header.getSize(),
                           left: isPinned === 'left' && sticky ? pinnedPosition : undefined,
                           right: isPinned === 'right' && sticky ? pinnedPosition : undefined,
+                          // Ensure pinned headers have solid background
+                          ...(isPinned && sticky ? { backgroundColor: 'hsl(var(--background))' } : {})
                         }}
                       >
                         <div className={cn(
@@ -1090,7 +1092,7 @@ export function DataTable<TData>({
                         'group border-b transition-colors',
                         // Alternating row colors for better visual distinction
                         index % 2 === 0 ? 'bg-background' : 'bg-muted/20',
-                        // Base hover state for the entire row
+                        // Base hover state - now handled by individual cells for better control
                         'hover:bg-muted/50',
                         onRowClick && 'cursor-pointer',
                         'data-[state=selected]:bg-primary/10 data-[state=selected]:border-primary/30'
@@ -1125,18 +1127,11 @@ export function DataTable<TData>({
                           <td 
                             key={cell.id} 
                             className={cn(
-                              "px-2 py-0 align-middle border-r border-border/30 last:border-r-0",
-                              // Base hover styles for non-pinned columns
-                              !isPinned && "group-hover:bg-muted/70",
-                              // Pinned column styles with higher z-index and inherit background
+                              "px-2 py-0 align-middle border-r border-border/30 last:border-r-0 relative",
+                              // Non-pinned cells inherit row hover through CSS
+                              !isPinned && "transition-colors",
+                              // Pinned column styles with higher z-index
                               isPinned && sticky && "sticky z-50 border-l border-border/20",
-                              // Pinned column background - inherit from row for alternating colors
-                              isPinned && sticky && index % 2 === 0 && "bg-background",
-                              isPinned && sticky && index % 2 !== 0 && "bg-muted/20",
-                              // Pinned column hover styles - maintain alternating pattern
-                              isPinned && sticky && "group-hover:bg-muted/70",
-                              // Selected state for pinned columns
-                              isPinned && sticky && row.getIsSelected() && "bg-primary/10",
                               isPinned === 'left' && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]",
                               isPinned === 'right' && "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.1)]",
                               selectable && cell.column.id !== 'select' && cell.column.id !== 'rowNumber' && "cursor-pointer"
@@ -1147,7 +1142,34 @@ export function DataTable<TData>({
                               minWidth: cell.column.getSize(),
                               left: isPinned === 'left' && sticky ? pinnedPosition : undefined,
                               right: isPinned === 'right' && sticky ? pinnedPosition : undefined,
+                              // Dynamic background for pinned columns that inherits from row state
+                              ...(isPinned && sticky ? {
+                                backgroundColor: row.getIsSelected() 
+                                  ? 'hsl(var(--primary) / 0.1)'
+                                  : index % 2 === 0 
+                                    ? 'hsl(var(--background))'
+                                    : 'hsl(var(--muted) / 0.2)'
+                              } : {})
                             }}
+                            // Apply hover effect through CSS custom property for pinned columns
+                            onMouseEnter={isPinned && sticky ? (e) => {
+                              const target = e.currentTarget as HTMLElement
+                              if (row.getIsSelected()) {
+                                target.style.backgroundColor = 'hsl(var(--primary) / 0.15)'
+                              } else {
+                                target.style.backgroundColor = 'hsl(var(--muted) / 0.7)'
+                              }
+                            } : undefined}
+                            onMouseLeave={isPinned && sticky ? (e) => {
+                              const target = e.currentTarget as HTMLElement
+                              if (row.getIsSelected()) {
+                                target.style.backgroundColor = 'hsl(var(--primary) / 0.1)'
+                              } else {
+                                target.style.backgroundColor = index % 2 === 0 
+                                  ? 'hsl(var(--background))'
+                                  : 'hsl(var(--muted) / 0.2)'
+                              }
+                            } : undefined}
                             onClick={(e) => {
                               // Handle cell click for selection toggle (except for select, rowNumber columns and action buttons)
                               if (selectable && 
