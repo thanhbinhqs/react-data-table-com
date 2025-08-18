@@ -932,7 +932,7 @@ export function DataTable<TData>({
                       <th
                         key={header.id}
                         className={cn(
-                          "relative h-6 px-2 text-left align-middle font-medium text-muted-foreground group border-r border-border/50 last:border-r-0 select-none text-xs",
+                          "relative h-5 px-2 text-left align-middle font-medium text-muted-foreground group border-r border-border/50 last:border-r-0 select-none text-xs",
                           isPinned && sticky && "sticky z-[70] bg-background/100 shadow-sm border-l border-border/30",
                           isPinned === 'left' && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]",
                           isPinned === 'right' && "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.15)]",
@@ -1081,17 +1081,19 @@ export function DataTable<TData>({
             </thead>
             <tbody>
               {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => {
+                table.getRowModel().rows.map((row, index) => {
                   const RowComponent = (
                     <tr
                       key={row.id}
                       data-state={row.getIsSelected() && 'selected'}
                       className={cn(
                         'group border-b transition-colors',
+                        // Alternating row colors for better visual distinction
+                        index % 2 === 0 ? 'bg-background' : 'bg-muted/20',
                         // Base hover state for the entire row
-                        'hover:bg-muted/30',
+                        'hover:bg-muted/50',
                         onRowClick && 'cursor-pointer',
-                        'data-[state=selected]:bg-muted'
+                        'data-[state=selected]:bg-primary/10 data-[state=selected]:border-primary/30'
                       )}
                       onClick={(e) => {
                         // Don't trigger row click if clicking on checkbox or action buttons
@@ -1123,13 +1125,18 @@ export function DataTable<TData>({
                           <td 
                             key={cell.id} 
                             className={cn(
-                              "px-2 py-0.5 align-middle border-r border-border/30 last:border-r-0",
+                              "px-2 py-0 align-middle border-r border-border/30 last:border-r-0",
                               // Base hover styles for non-pinned columns
-                              !isPinned && "group-hover:bg-muted/50",
-                              // Pinned column styles with higher z-index and solid background
-                              isPinned && sticky && "sticky z-50 bg-background/100 border-l border-border/20",
-                              // Pinned column hover styles - use solid background to prevent blur
-                              isPinned && sticky && "group-hover:bg-muted/100",
+                              !isPinned && "group-hover:bg-muted/70",
+                              // Pinned column styles with higher z-index and inherit background
+                              isPinned && sticky && "sticky z-50 border-l border-border/20",
+                              // Pinned column background - inherit from row for alternating colors
+                              isPinned && sticky && index % 2 === 0 && "bg-background",
+                              isPinned && sticky && index % 2 !== 0 && "bg-muted/20",
+                              // Pinned column hover styles - maintain alternating pattern
+                              isPinned && sticky && "group-hover:bg-muted/70",
+                              // Selected state for pinned columns
+                              isPinned && sticky && row.getIsSelected() && "bg-primary/10",
                               isPinned === 'left' && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]",
                               isPinned === 'right' && "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.1)]",
                               selectable && cell.column.id !== 'select' && cell.column.id !== 'rowNumber' && "cursor-pointer"
@@ -1154,7 +1161,7 @@ export function DataTable<TData>({
                               }
                             }}
                           >
-                            <div className="truncate text-xs leading-none whitespace-nowrap overflow-hidden text-ellipsis">
+                            <div className="truncate text-xs leading-tight whitespace-nowrap overflow-hidden text-ellipsis py-1">
                               {flexRender(cell.column.columnDef.cell, cell.getContext())}
                             </div>
                           </td>
