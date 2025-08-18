@@ -118,9 +118,9 @@ export function DataTable<TData>({
   }
 
   return (
-    <div className={cn('space-y-4', className)}>
-      {/* Header Section */}
-      <div className="flex items-center justify-between">
+    <div className={cn('flex flex-col h-full', className)}>
+      {/* Header Section - Fixed */}
+      <div className="flex items-center justify-between pb-4 flex-shrink-0">
         <div className="space-y-1">
           {title && <h2 className="text-2xl font-bold tracking-tight">{title}</h2>}
           <p className="text-sm text-muted-foreground">
@@ -236,17 +236,17 @@ export function DataTable<TData>({
         </div>
       </div>
 
-      {/* Table */}
-      <div className="rounded-md border">
-        <div className="overflow-auto">
+      {/* Table Container - Scrollable */}
+      <div className="flex-1 rounded-md border overflow-hidden">
+        <div className="h-full overflow-auto">
           <table className="w-full">
-            <thead>
+            <thead className="sticky top-0 z-10">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id} className="border-b bg-muted/50">
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
-                      className="relative h-12 px-4 text-left align-middle font-medium text-muted-foreground group"
+                      className="relative h-12 px-4 text-left align-middle font-medium text-muted-foreground group bg-muted/50"
                       style={{ width: header.getSize() }}
                     >
                       <div className="flex items-center gap-2">

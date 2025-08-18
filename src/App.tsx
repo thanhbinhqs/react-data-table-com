@@ -214,9 +214,9 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="h-screen flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="bg-primary text-primary-foreground px-6 py-4 shadow-sm">
+      <header className="bg-primary text-primary-foreground px-6 py-4 shadow-sm flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold">Advanced Data Table</h1>
@@ -233,7 +233,7 @@ function App() {
       </header>
 
       {/* Main Content - DataTable takes remaining space */}
-      <main className="flex-1 p-6">
+      <main className="flex-1 p-6 overflow-hidden">
         <DataTable
           data={sampleUsers}
           columns={columns}
