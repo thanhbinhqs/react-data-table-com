@@ -130,7 +130,7 @@ function App() {
       enableResizing: true,
       size: 200,
       minSize: 100,
-      maxSize: 400,
+      maxSize: 1400,
     },
     {
       id: 'email',
