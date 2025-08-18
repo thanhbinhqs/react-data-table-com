@@ -214,17 +214,37 @@ function App() {
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <DataTable
-        data={sampleUsers}
-        columns={columns}
-        title="User Management"
-        searchable={true}
-        filterable={true}
-        onRowClick={handleRowClick}
-        onFilterApply={handleFilterApply}
-        onClear={handleClear}
-      />
+    <div className="min-h-screen flex flex-col">
+      {/* Header */}
+      <header className="bg-primary text-primary-foreground px-6 py-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold">Advanced Data Table</h1>
+            <p className="text-primary-foreground/80 text-sm mt-1">
+              Manage and analyze your data with powerful filtering and sorting
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-primary-foreground/80">
+              {sampleUsers.length} total users
+            </span>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content - DataTable takes remaining space */}
+      <main className="flex-1 p-6">
+        <DataTable
+          data={sampleUsers}
+          columns={columns}
+          title="User Management"
+          searchable={true}
+          filterable={true}
+          onRowClick={handleRowClick}
+          onFilterApply={handleFilterApply}
+          onClear={handleClear}
+        />
+      </main>
     </div>
   )
 }
