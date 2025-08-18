@@ -590,7 +590,7 @@ export function DataTable<TData>({
                         key={header.id}
                         className={cn(
                           "relative h-12 px-4 text-left align-middle font-medium text-muted-foreground group border-r border-border/50 last:border-r-0 select-none",
-                          isPinned && sticky && "sticky z-40 bg-background/95 backdrop-blur-sm shadow-sm border-l border-border/30",
+                          isPinned && sticky && "sticky z-40 bg-background shadow-sm border-l border-border/30",
                           isPinned === 'left' && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]",
                           isPinned === 'right' && "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.15)]"
                         )}
@@ -770,7 +770,7 @@ export function DataTable<TData>({
                           key={cell.id} 
                           className={cn(
                             "p-4 align-middle border-r border-border/30 last:border-r-0 group-hover:bg-muted/50",
-                            isPinned && sticky && "sticky z-20 bg-background/95 backdrop-blur-sm border-l border-border/20 group-hover:bg-muted/60 focus-within:z-30 focus-within:bg-background",
+                            isPinned && sticky && "sticky z-20 bg-background border-l border-border/20 group-hover:bg-muted/60 focus-within:z-30 focus-within:bg-background",
                             isPinned === 'left' && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]",
                             isPinned === 'right' && "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.1)]",
                             selectable && cell.column.id !== 'select' && cell.column.id !== 'rowNumber' && "cursor-pointer"
