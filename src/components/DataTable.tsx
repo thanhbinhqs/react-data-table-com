@@ -240,13 +240,13 @@ export function DataTable<TData>({
       <div className="flex-1 rounded-md border overflow-hidden">
         <div className="h-full overflow-auto">
           <table className="w-full">
-            <thead className="sticky top-0 z-10">
+            <thead className="sticky top-0 z-10 bg-background backdrop-blur-sm border-b shadow-sm">
               {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id} className="border-b bg-muted/50">
+                <tr key={headerGroup.id} className="bg-background">
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
-                      className="relative h-12 px-4 text-left align-middle font-medium text-muted-foreground group bg-muted/50"
+                      className="relative h-12 px-4 text-left align-middle font-medium text-muted-foreground group bg-background"
                       style={{ width: header.getSize() }}
                     >
                       <div className="flex items-center gap-2">
