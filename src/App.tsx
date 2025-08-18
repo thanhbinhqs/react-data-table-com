@@ -251,6 +251,10 @@ function App() {
     console.log('Filters cleared')
   }, [])
 
+  const handleSelectionChange = useCallback((selectedRows: User[]) => {
+    console.log('Selection changed:', selectedRows)
+  }, [])
+
   const simulateLoading = useCallback(() => {
     setIsLoading(true)
     setTimeout(() => {
@@ -305,9 +309,11 @@ function App() {
           title="User Management"
           searchable={true}
           filterable={true}
+          selectable={true}
           onRowClick={handleRowClick}
           onFilterApply={handleFilterApply}
           onClear={handleClear}
+          onSelectionChange={handleSelectionChange}
           spin={isLoading}
           sticky={stickyHeader}
         />

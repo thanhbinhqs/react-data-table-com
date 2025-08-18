@@ -18,9 +18,19 @@
  * 3. Pinned columns will remain visible while scrolling horizontally
  * 4. Use "Unpin All" to quickly remove all column pinning
  * 
+ * ROW SELECTION:
+ * 1. Enable by setting `selectable={true}` prop
+ * 2. Click individual checkboxes to select specific rows
+ * 3. Use the header checkbox to select/deselect all visible rows
+ * 4. Selection persists through filtering and sorting
+ * 5. Clear selection using the "X" button in the selection indicator
+ * 6. Access selected data via `onSelectionChange` callback
+ * 
  * NEW PROPS:
  * - spin: boolean - Shows a loading spinner overlay when true
  * - sticky: boolean - Controls whether table headers and pinned columns stick during scroll
+ * - selectable: boolean - Enables row selection with checkboxes
+ * - onSelectionChange: (selectedRows: TData[]) => void - Callback when selection changes
  * 
  * Features implemented:
  * - Smooth column resizing with visual feedback
@@ -34,6 +44,9 @@
  * - Maintain pinning state during table operations
  * - Loading state with spinner overlay
  * - Configurable sticky header behavior
+ * - Multi-row selection with checkboxes
+ * - Select all functionality
+ * - Selection state management and callbacks
  */
 
 import { useState, useMemo } from 'react'
@@ -50,6 +63,7 @@ import {
   Row,
   ColumnResizeMode,
   ColumnPinningState,
+  RowSelectionState,
 } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -84,6 +98,8 @@ export interface DataTableProps<TData> {
   onClear?: () => void
   spin?: boolean
   sticky?: boolean
+  selectable?: boolean
+  onSelectionChange?: (selectedRows: TData[]) => void
 }
 
 interface FilterConfig {
@@ -105,11 +121,14 @@ export function DataTable<TData>({
   onClear,
   spin = false,
   sticky = true,
+  selectable = false,
+  onSelectionChange,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [columnPinning, setColumnPinning] = useState<ColumnPinningState>({})
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [globalFilter, setGlobalFilter] = useState('')
   const [filterValues, setFilterValues] = useState<Record<string, any>>({})
   const [columnResizeMode] = useState<ColumnResizeMode>('onChange')
@@ -125,17 +144,69 @@ export function DataTable<TData>({
       }))
   }, [columns])
 
+  // Create columns with selection column if selectable
+  const tableColumns = useMemo(() => {
+    if (!selectable) return columns
+
+    const selectionColumn: ColumnDef<TData> = {
+      id: 'select',
+      header: ({ table }) => (
+        <Checkbox
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && "indeterminate")
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+          onClick={(e) => e.stopPropagation()}
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+      enableResizing: false,
+      enablePinning: true,
+      size: 50,
+      minSize: 50,
+      maxSize: 50,
+    }
+
+    return [selectionColumn, ...columns]
+  }, [columns, selectable])
+
+  // Get selected rows data
+  const selectedRowsData = useMemo(() => {
+    return table.getFilteredSelectedRowModel().rows.map(row => row.original)
+  }, [rowSelection, table])
+
+  // Notify parent component of selection changes
+  useMemo(() => {
+    onSelectionChange?.(selectedRowsData)
+  }, [selectedRowsData, onSelectionChange])
+
   const table = useReactTable({
     data,
-    columns,
+    columns: tableColumns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getRowId: (row, index) => {
+      // Use id field if available, otherwise use index
+      return (row as any).id?.toString() || index.toString()
+    },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnPinningChange: setColumnPinning,
+    onRowSelectionChange: setRowSelection,
     onGlobalFilterChange: setGlobalFilter,
+    enableRowSelection: selectable,
     enableColumnResizing: true,
     enableColumnPinning: true,
     columnResizeMode,
@@ -150,6 +221,7 @@ export function DataTable<TData>({
       columnFilters,
       columnVisibility,
       columnPinning,
+      rowSelection,
       globalFilter,
     },
     debugTable: false,
@@ -191,6 +263,11 @@ export function DataTable<TData>({
           {title && <h2 className="text-2xl font-bold tracking-tight">{title}</h2>}
           <p className="text-sm text-muted-foreground">
             {table.getFilteredRowModel().rows.length} of {data.length} row(s)
+            {selectable && Object.keys(rowSelection).length > 0 && (
+              <span className="ml-2 text-primary">
+                • {Object.keys(rowSelection).filter(key => rowSelection[key]).length} selected
+              </span>
+            )}
             {isResizing && <span className="ml-2 text-primary">• Resizing columns...</span>}
           </p>
         </div>
@@ -219,6 +296,28 @@ export function DataTable<TData>({
             </div>
           )}
 
+          {/* Selection Actions */}
+          {selectable && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.toggleAllRowsSelected()}
+              >
+                {table.getIsAllRowsSelected() ? 'Deselect All' : 'Select All'}
+              </Button>
+              {Object.keys(rowSelection).length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setRowSelection({})}
+                >
+                  Clear Selection
+                </Button>
+              )}
+            </div>
+          )}
+
           {/* Column Visibility and Pinning Toggle */}
           <Sheet>
             <SheetTrigger asChild>
@@ -232,6 +331,24 @@ export function DataTable<TData>({
                 <SheetTitle>Column Settings</SheetTitle>
               </SheetHeader>
               <div className="space-y-6 pt-4">
+                {/* Selection Controls */}
+                {selectable && Object.keys(rowSelection).length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium mb-3">Selection</h4>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setRowSelection({})}
+                        className="flex-1"
+                      >
+                        Clear Selection ({Object.keys(rowSelection).filter(key => rowSelection[key]).length})
+                      </Button>
+                    </div>
+                    <Separator className="mt-4" />
+                  </div>
+                )}
+                
                 <div>
                   <h4 className="text-sm font-medium mb-3">Column Visibility</h4>
                   <div className="space-y-3">
@@ -493,7 +610,14 @@ export function DataTable<TData>({
                       onRowClick && 'cursor-pointer',
                       'data-[state=selected]:bg-muted'
                     )}
-                    onClick={() => onRowClick?.(row)}
+                    onClick={(e) => {
+                      // Don't trigger row click if clicking on checkbox
+                      if (e.target instanceof HTMLElement && 
+                          e.target.closest('[role="checkbox"]')) {
+                        return
+                      }
+                      onRowClick?.(row)
+                    }}
                   >
                     {row.getVisibleCells().map((cell) => {
                       const isPinned = cell.column.getIsPinned()
@@ -530,7 +654,7 @@ export function DataTable<TData>({
                 ))
               ) : (
                 <tr>
-                  <td colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+                  <td colSpan={tableColumns.length} className="h-24 text-center text-muted-foreground">
                     No results found.
                   </td>
                 </tr>
