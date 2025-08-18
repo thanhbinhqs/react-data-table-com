@@ -17,14 +17,17 @@
  *    - Right pin icon: Pin column to the right side
  * 3. Pinned columns will remain visible while scrolling horizontally
  * 4. Use "Unpin All" to quickly remove all column pinning
+ * 5. Selection column is always pinned to the left when enabled
  * 
  * ROW SELECTION:
  * 1. Enable by setting `selectable={true}` prop
- * 2. Click individual checkboxes to select specific rows
- * 3. Use the header checkbox to select/deselect all visible rows
- * 4. Selection persists through filtering and sorting
- * 5. Clear selection using the "X" button in the selection indicator
- * 6. Access selected data via `onSelectionChange` callback
+ * 2. Selection column is automatically pinned to the left
+ * 3. Click individual checkboxes to select specific rows
+ * 4. Click on any cell (except action buttons) to toggle row selection
+ * 5. Use the header checkbox to select/deselect all visible rows
+ * 6. Selection persists through filtering and sorting
+ * 7. Clear selection using the "X" button in the selection indicator
+ * 8. Access selected data via `onSelectionChange` callback
  * 
  * NEW PROPS:
  * - spin: boolean - Shows a loading spinner overlay when true
@@ -44,7 +47,8 @@
  * - Maintain pinning state during table operations
  * - Loading state with spinner overlay
  * - Configurable sticky header behavior
- * - Multi-row selection with checkboxes
+ * - Multi-row selection with checkboxes and cell click toggle
+ * - Always left-pinned selection column
  * - Select all functionality
  * - Selection state management and callbacks
  */
@@ -171,7 +175,7 @@ export function DataTable<TData>({
       enableSorting: false,
       enableHiding: false,
       enableResizing: false,
-      enablePinning: true,
+      enablePinning: false, // Disable pinning since it's always pinned left
       size: 50,
       minSize: 50,
       maxSize: 50,
@@ -210,7 +214,12 @@ export function DataTable<TData>({
       sorting,
       columnFilters,
       columnVisibility,
-      columnPinning,
+      columnPinning: selectable 
+        ? { 
+            ...columnPinning,
+            left: ['select', ...(columnPinning.left || []).filter(id => id !== 'select')] 
+          } // Always pin selection column to left, preserve other left pins
+        : columnPinning,
       rowSelection,
       globalFilter,
     },
@@ -369,8 +378,8 @@ export function DataTable<TData>({
                             </Label>
                           </div>
                           
-                          {/* Pin Controls */}
-                          {column.getIsVisible() && column.getCanPin() && (
+                          {/* Pin Controls - Hide for selection column */}
+                          {column.getIsVisible() && column.getCanPin() && column.id !== 'select' && (
                             <div className="flex items-center gap-1">
                               <Button
                                 variant="ghost"
@@ -408,6 +417,13 @@ export function DataTable<TData>({
                                   column.getIsPinned() === 'right' ? "text-primary" : "text-muted-foreground"
                                 )} />
                               </Button>
+                            </div>
+                          )}
+                          
+                          {/* Selection column indicator */}
+                          {column.id === 'select' && (
+                            <div className="text-xs text-muted-foreground">
+                              Always pinned left
                             </div>
                           )}
                         </div>
@@ -611,11 +627,20 @@ export function DataTable<TData>({
                       'data-[state=selected]:bg-muted'
                     )}
                     onClick={(e) => {
-                      // Don't trigger row click if clicking on checkbox
+                      // Don't trigger row click if clicking on checkbox or action buttons
                       if (e.target instanceof HTMLElement && 
-                          e.target.closest('[role="checkbox"]')) {
+                          (e.target.closest('[role="checkbox"]') || 
+                           e.target.closest('button') || 
+                           e.target.closest('a'))) {
                         return
                       }
+                      
+                      // If selectable, toggle selection on cell click
+                      if (selectable) {
+                        row.toggleSelected()
+                      }
+                      
+                      // Also call the onRowClick handler if provided
                       onRowClick?.(row)
                     }}
                   >
@@ -634,7 +659,8 @@ export function DataTable<TData>({
                             "p-4 align-middle border-r border-border/30 last:border-r-0 group-hover:bg-muted/50",
                             isPinned && sticky && "sticky z-10 bg-background group-hover:bg-muted/50",
                             isPinned === 'left' && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.05)]",
-                            isPinned === 'right' && "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.05)]"
+                            isPinned === 'right' && "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.05)]",
+                            selectable && cell.column.id !== 'select' && "cursor-pointer"
                           )}
                           style={{ 
                             width: cell.column.getSize(),
@@ -642,6 +668,17 @@ export function DataTable<TData>({
                             minWidth: cell.column.getSize(),
                             left: isPinned === 'left' && sticky ? pinnedPosition : undefined,
                             right: isPinned === 'right' && sticky ? pinnedPosition : undefined,
+                          }}
+                          onClick={(e) => {
+                            // Handle cell click for selection toggle (except for select column and action buttons)
+                            if (selectable && 
+                                cell.column.id !== 'select' && 
+                                !(e.target as HTMLElement)?.closest('button') && 
+                                !(e.target as HTMLElement)?.closest('a') &&
+                                !(e.target as HTMLElement)?.closest('[role="checkbox"]')) {
+                              e.stopPropagation()
+                              row.toggleSelected()
+                            }
                           }}
                         >
                           <div className="truncate">
