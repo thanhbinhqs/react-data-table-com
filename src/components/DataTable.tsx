@@ -232,9 +232,9 @@ export function DataTable<TData>({
         enableHiding: false,
         enableResizing: false,
         enablePinning: false, // Disable pinning since it's always pinned left
-        size: 56,
-        minSize: 56,
-        maxSize: 56,
+        size: 44,
+        minSize: 44,
+        maxSize: 44,
       }
       extraColumns.push(selectionColumn)
     }
