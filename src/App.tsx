@@ -1,6 +1,6 @@
 import { useMemo, useCallback, useState } from 'react'
 import { ColumnDef, ColumnFiltersState } from '@tanstack/react-table'
-import { DataTable, RowAction, RowActionGroup, BulkAction, ContextMenuItem, ContextMenuGroup } from '@/components/DataTable'
+import { DataTable, RowAction, RowActionGroup, BulkAction, ContextMenuItem, ContextMenuGroup, DateRange } from '@/components/DataTable'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -471,6 +471,16 @@ function App() {
 
   const handleFilterApply = useCallback((filters: ColumnFiltersState) => {
     console.log('Filters applied:', filters)
+    
+    // Log date range filters specifically
+    filters.forEach(filter => {
+      if (filter.value && typeof filter.value === 'object' && filter.value.from) {
+        console.log(`Date range filter for ${filter.id}:`, {
+          from: filter.value.from,
+          to: filter.value.to
+        })
+      }
+    })
   }, [])
 
   const handleClear = useCallback(() => {

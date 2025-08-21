@@ -98,6 +98,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { DateRangePicker } from '@/components/DateRangePicker'
+import { DateRange } from 'react-day-picker'
 import { 
   ChevronUp, 
   ChevronDown, 
@@ -136,6 +138,7 @@ import {
 interface FilterConfig {
   id: string
   label: string
+  type?: 'text' | 'date-range'
 }
 
 export interface RowAction<TData> {
@@ -175,6 +178,9 @@ export interface ContextMenuGroup<TData> {
   label: string
   items: ContextMenuItem<TData>[]
 }
+
+// Re-export DateRange for convenience
+export type { DateRange } from 'react-day-picker'
 
 interface DataTableProps<TData> {
   data: TData[]
@@ -241,10 +247,22 @@ export function DataTable<TData>({
   const filterConfigs: FilterConfig[] = useMemo(() => {
     return columns
       .filter(col => col.enableColumnFilter && col.accessorKey)
-      .map(col => ({
-        id: col.accessorKey as string,
-        label: typeof col.header === 'string' ? col.header : col.accessorKey as string,
-      }))
+      .map(col => {
+        const columnId = col.accessorKey as string
+        const columnLabel = typeof col.header === 'string' ? col.header : columnId
+        
+        // Detect if this is a date column based on column ID or sample data
+        const isDateColumn = columnId.toLowerCase().includes('date') || 
+                           columnId.toLowerCase().includes('time') ||
+                           columnId.toLowerCase().includes('created') ||
+                           columnId.toLowerCase().includes('updated')
+        
+        return {
+          id: columnId,
+          label: columnLabel,
+          type: isDateColumn ? 'date-range' as const : 'text' as const,
+        }
+      })
   }, [columns])
 
   const tableColumns = useMemo(() => {
@@ -370,8 +388,46 @@ export function DataTable<TData>({
       extraColumns.push(rowActionsColumn)
     }
 
-    return [...extraColumns, ...columns]
+    // Process main columns to add filter functions for date columns
+    const processedColumns = columns.map(col => {
+      const columnId = col.accessorKey as string
+      const isDateColumn = columnId?.toLowerCase().includes('date') || 
+                          columnId?.toLowerCase().includes('time') ||
+                          columnId?.toLowerCase().includes('created') ||
+                          columnId?.toLowerCase().includes('updated')
+      
+      if (isDateColumn && col.enableColumnFilter) {
+        return {
+          ...col,
+          filterFn: 'dateRange' as const,
+        }
+      }
+      
+      return col
+    })
+
+    return [...extraColumns, ...processedColumns]
   }, [columns, selectable, rowActions])
+
+  // Custom filter functions for different column types
+  const customFilterFns = useMemo(() => ({
+    dateRange: (row: any, columnId: string, filterValue: DateRange) => {
+      if (!filterValue?.from) return true
+      
+      const cellValue = row.getValue(columnId)
+      if (!cellValue) return false
+      
+      // Convert cell value to date
+      const cellDate = new Date(cellValue)
+      if (Number.isNaN(cellDate.getTime())) return false
+      
+      // Check if date is within range
+      const fromDate = filterValue.from
+      const toDate = filterValue.to || filterValue.from
+      
+      return cellDate >= fromDate && cellDate <= toDate
+    }
+  }), [])
 
   const table = useReactTable({
     data,
@@ -383,6 +439,7 @@ export function DataTable<TData>({
       // Use id field if available, otherwise use index
       return (row as any).id?.toString() || index.toString()
     },
+    filterFns: customFilterFns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
@@ -449,7 +506,17 @@ export function DataTable<TData>({
 
   const handleApplyFilters = () => {
     const filters = Object.entries(filterValues)
-      .filter(([_, value]) => value && value.toString().trim() !== '')
+      .filter(([_, value]) => {
+        if (!value) return false
+        
+        // For date range filters, check if at least one date is selected
+        if (typeof value === 'object' && value.from) {
+          return true
+        }
+        
+        // For text filters, check if value is not empty
+        return value.toString().trim() !== ''
+      })
       .map(([id, value]) => ({ id, value }))
     
     setColumnFilters(filters)
@@ -735,13 +802,21 @@ export function DataTable<TData>({
                             <Label htmlFor={config.id} className="text-sm font-medium">
                               {config.label}
                             </Label>
-                            <Input
-                              id={config.id}
-                              placeholder={`Filter by ${config.label.toLowerCase()}...`}
-                              value={filterValues[config.id] || ''}
-                              onChange={(e) => handleFilterChange(config.id, e.target.value)}
-                              className="w-full"
-                            />
+                            {config.type === 'date-range' ? (
+                              <DateRangePicker
+                                value={filterValues[config.id] as DateRange | undefined}
+                                onChange={(range) => handleFilterChange(config.id, range)}
+                                placeholder={`Filter by ${config.label.toLowerCase()}...`}
+                              />
+                            ) : (
+                              <Input
+                                id={config.id}
+                                placeholder={`Filter by ${config.label.toLowerCase()}...`}
+                                value={filterValues[config.id] || ''}
+                                onChange={(e) => handleFilterChange(config.id, e.target.value)}
+                                className="w-full"
+                              />
+                            )}
                           </div>
                         ))}
                       </div>
