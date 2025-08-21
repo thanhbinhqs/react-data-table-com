@@ -743,7 +743,7 @@ export function DataTable<TData>({
                                 title="Unpin"
                                 disabled={!column.getIsPinned()}
                               >
-                                <PinSlash className="h-3 w-3 text-muted-foreground" />
+                                <PinOff className="h-3 w-3 text-muted-foreground" />
                               </Button>
                               <Button
                                 variant="ghost"
