@@ -140,7 +140,7 @@ function App() {
       enablePinning: true,
       size: 120,
       minSize: 100,
-      maxSize: 200,
+      maxSize: 1000,
     },
     {
       id: 'email',
@@ -152,7 +152,7 @@ function App() {
       enablePinning: true,
       size: 180,
       minSize: 150,
-      maxSize: 250,
+      maxSize: 1000,
     },
     {
       id: 'role',
@@ -164,7 +164,7 @@ function App() {
       enablePinning: true,
       size: 130,
       minSize: 100,
-      maxSize: 180,
+      maxSize: 1000,
     },
     {
       id: 'department',
@@ -176,7 +176,7 @@ function App() {
       enablePinning: true,
       size: 120,
       minSize: 100,
-      maxSize: 160,
+      maxSize: 1000,
     },
     {
       id: 'status',
@@ -188,7 +188,7 @@ function App() {
       enablePinning: true,
       size: 80,
       minSize: 70,
-      maxSize: 100,
+      maxSize: 1000,
       cell: ({ getValue }) => {
         const status = getValue() as string
         return (
@@ -215,7 +215,7 @@ function App() {
       enablePinning: true,
       size: 100,
       minSize: 90,
-      maxSize: 120,
+      maxSize: 1000,
       cell: ({ getValue }) => {
         const date = getValue() as string
         return new Date(date).toLocaleDateString()
