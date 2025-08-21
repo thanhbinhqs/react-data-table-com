@@ -97,9 +97,12 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { 
   ChevronUp, 
   ChevronDown, 
+  ChevronLeft,
+  ChevronRight,
   Filter, 
   Search, 
   X,
@@ -190,6 +193,13 @@ interface DataTableProps<TData> {
   rowActions?: RowActionGroup<TData>[]
   bulkActions?: BulkAction<TData>[]
   contextMenu?: ContextMenuGroup<TData>[]
+  // Pagination props
+  total?: number
+  pageSize?: number
+  page?: number
+  pageOptions?: number[]
+  onPageSizeChange?: (pageSize: number) => void
+  onPageChange?: (page: number) => void
 }
 
 export function DataTable<TData>({
@@ -209,6 +219,13 @@ export function DataTable<TData>({
   rowActions = [],
   bulkActions = [],
   contextMenu = [],
+  // Pagination props with defaults
+  total,
+  pageSize = 10,
+  page = 1,
+  pageOptions = [5, 10, 20, 50, 100],
+  onPageSizeChange,
+  onPageChange,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -1003,6 +1020,83 @@ export function DataTable<TData>({
           </table>
         </div>
       </div>
+      
+      {/* Pagination Section */}
+      {(total !== undefined || onPageChange || onPageSizeChange) && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 px-1 flex-shrink-0">
+          {/* Page size selector */}
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-muted-foreground whitespace-nowrap">Rows per page</span>
+            <Select
+              value={pageSize.toString()}
+              onValueChange={(value) => onPageSizeChange?.(parseInt(value))}
+            >
+              <SelectTrigger className="h-7 w-16 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {pageOptions.map((size) => (
+                  <SelectItem key={size} value={size.toString()} className="text-xs">
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Current page info */}
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <span>
+              Page {page} of {Math.ceil((total || data.length) / pageSize)} 
+              {total !== undefined && (
+                <span className="ml-1">
+                  ({((page - 1) * pageSize) + 1}-{Math.min(page * pageSize, total)} of {total} total)
+                </span>
+              )}
+            </span>
+          </div>
+
+          {/* Navigation buttons */}
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => onPageChange?.(1)}
+              disabled={page <= 1}
+            >
+              First
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 w-7 p-0"
+              onClick={() => onPageChange?.(page - 1)}
+              disabled={page <= 1}
+            >
+              <ChevronLeft className="h-3 w-3" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 w-7 p-0"
+              onClick={() => onPageChange?.(page + 1)}
+              disabled={page >= Math.ceil((total || data.length) / pageSize)}
+            >
+              <ChevronRight className="h-3 w-3" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => onPageChange?.(Math.ceil((total || data.length) / pageSize))}
+              disabled={page >= Math.ceil((total || data.length) / pageSize)}
+            >
+              Last
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

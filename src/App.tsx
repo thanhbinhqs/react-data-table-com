@@ -124,6 +124,10 @@ const sampleUsers: User[] = [
 function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [stickyHeader, setStickyHeader] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+
+  const totalUsers = sampleUsers.length
 
   const columns = useMemo<ColumnDef<User>[]>(() => [
     {
@@ -477,6 +481,17 @@ function App() {
     console.log('Selection changed:', selectedRows)
   }, [])
 
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page)
+    console.log('Page changed to:', page)
+  }, [])
+
+  const handlePageSizeChange = useCallback((newPageSize: number) => {
+    setPageSize(newPageSize)
+    setCurrentPage(1) // Reset to first page when page size changes
+    console.log('Page size changed to:', newPageSize)
+  }, [])
+
   const simulateLoading = useCallback(() => {
     setIsLoading(true)
     setTimeout(() => {
@@ -542,6 +557,12 @@ function App() {
           rowActions={rowActions}
           bulkActions={bulkActions}
           contextMenu={contextMenuItems}
+          total={totalUsers}
+          pageSize={pageSize}
+          page={currentPage}
+          pageOptions={[5, 10, 20, 50, 100]}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
         />
       </main>
     </div>
