@@ -721,38 +721,42 @@ export function DataTable<TData>({
                     )}
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-full sm:w-80 max-w-sm">
+                <SheetContent side="right" className="w-full sm:w-80 max-w-sm p-6">
                   <SheetHeader>
                     <SheetTitle>Filter Data</SheetTitle>
                   </SheetHeader>
                   
-                  <div className="space-y-6 pt-6 h-full overflow-y-auto">
-                    <div className="space-y-4 max-h-96 overflow-y-auto">
-                      {filterConfigs.map((config) => (
-                        <div key={config.id} className="space-y-2">
-                          <Label htmlFor={config.id} className="text-sm font-medium">
-                            {config.label}
-                          </Label>
-                          <Input
-                            id={config.id}
-                            placeholder={`Filter by ${config.label.toLowerCase()}...`}
-                            value={filterValues[config.id] || ''}
-                            onChange={(e) => handleFilterChange(config.id, e.target.value)}
-                            className="w-full"
-                          />
-                        </div>
-                      ))}
+                  <div className="flex flex-col h-full pt-6">
+                    {/* Filter inputs - scrollable content */}
+                    <div className="flex-1 overflow-y-auto pr-2">
+                      <div className="space-y-4">
+                        {filterConfigs.map((config) => (
+                          <div key={config.id} className="space-y-2">
+                            <Label htmlFor={config.id} className="text-sm font-medium">
+                              {config.label}
+                            </Label>
+                            <Input
+                              id={config.id}
+                              placeholder={`Filter by ${config.label.toLowerCase()}...`}
+                              value={filterValues[config.id] || ''}
+                              onChange={(e) => handleFilterChange(config.id, e.target.value)}
+                              className="w-full"
+                            />
+                          </div>
+                        ))}
+                      </div>
                     </div>
                     
-                    <Separator />
-                    
-                    <div className="flex flex-col gap-2">
-                      <Button onClick={handleApplyFilters} className="w-full">
-                        Apply Filters
-                      </Button>
-                      <Button variant="outline" onClick={handleClearFilters} className="w-full">
-                        Clear All
-                      </Button>
+                    {/* Fixed bottom section with buttons */}
+                    <div className="flex-shrink-0 pt-6 border-t mt-6">
+                      <div className="flex flex-col gap-3">
+                        <Button onClick={handleApplyFilters} className="w-full">
+                          Apply Filters
+                        </Button>
+                        <Button variant="outline" onClick={handleClearFilters} className="w-full">
+                          Clear All
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </SheetContent>
