@@ -904,10 +904,9 @@ export function DataTable<TData>({
             </div>
           )}
           <table 
-            className="relative w-full table-responsive-small md:table-responsive-medium"
+            className="relative table-responsive-small md:table-responsive-medium"
             style={{
-              width: Math.max(table.getTotalSize(), 100),
-              minWidth: '100%',
+              width: table.getTotalSize(),
               isolation: 'isolate',
             }}
           >
