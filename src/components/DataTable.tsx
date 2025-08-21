@@ -38,6 +38,14 @@
  * 4. Always pinned to the left, positioned after selection column
  * 5. Cannot be hidden, resized, or moved
  * 
+ * RESPONSIVE DESIGN:
+ * 1. Adapts to mobile, tablet, and desktop screen sizes
+ * 2. Search field becomes full-width on mobile
+ * 3. Action buttons are responsive with shortened labels on small screens
+ * 4. Side panels (filters, columns) take full width on mobile
+ * 5. Bulk actions stack vertically on mobile
+ * 6. Header layout adapts to smaller screens
+ * 
  * NEW PROPS:
  * - spin: boolean - Shows a loading spinner overlay when true
  * - sticky: boolean - Controls whether table headers and pinned columns stick during scroll
@@ -63,6 +71,7 @@
  * - Select all functionality
  * - Selection state management and callbacks
  * - Automatic row numbering with filtering awareness
+ * - Fully responsive design for all screen sizes
  */
 
 import { useState, useMemo } from 'react'
@@ -99,17 +108,17 @@ import {
   Maximize2,
   Pin,
   PinOff,
-  Loader2,
-  MoreHorizontal
+  MoreHorizontal,
+  Loader2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu'
 import {
   ContextMenu,
@@ -121,32 +130,37 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
 
+interface FilterConfig {
+  id: string
+  label: string
+}
+
 export interface RowAction<TData> {
   label: string
-  icon?: React.ComponentType<any>
+  icon?: any
   onClick: (row: TData) => void
-  variant?: 'default' | 'destructive'
+  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'
   disabled?: (row: TData) => boolean
   hidden?: (row: TData) => boolean
 }
 
 export interface RowActionGroup<TData> {
-  label?: string
+  label: string
   actions: RowAction<TData>[]
 }
 
 export interface BulkAction<TData> {
   label: string
-  icon?: React.ComponentType<any>
-  onClick: (selectedRows: TData[]) => void
-  variant?: 'default' | 'destructive'
-  disabled?: (selectedRows: TData[]) => boolean
+  icon?: any
+  onClick: (rows: TData[]) => void
+  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'
+  disabled?: (rows: TData[]) => boolean
   confirmMessage?: string
 }
 
 export interface ContextMenuItem<TData> {
   label: string
-  icon?: React.ComponentType<any>
+  icon?: any
   onClick: (row: TData) => void
   variant?: 'default' | 'destructive'
   disabled?: (row: TData) => boolean
@@ -155,53 +169,46 @@ export interface ContextMenuItem<TData> {
 }
 
 export interface ContextMenuGroup<TData> {
-  label?: string
+  label: string
   items: ContextMenuItem<TData>[]
 }
 
-export interface DataTableProps<TData> {
+interface DataTableProps<TData> {
   data: TData[]
   columns: ColumnDef<TData>[]
+  title?: string
   searchable?: boolean
   filterable?: boolean
-  title?: string
-  className?: string
+  selectable?: boolean
   onRowClick?: (row: Row<TData>) => void
   onFilterApply?: (filters: ColumnFiltersState) => void
   onClear?: () => void
+  onSelectionChange?: (selectedRows: TData[]) => void
+  className?: string
   spin?: boolean
   sticky?: boolean
-  selectable?: boolean
-  onSelectionChange?: (selectedRows: TData[]) => void
-  rowActions?: RowAction<TData>[] | RowActionGroup<TData>[]
+  rowActions?: RowActionGroup<TData>[]
   bulkActions?: BulkAction<TData>[]
-  contextMenu?: ContextMenuItem<TData>[] | ContextMenuGroup<TData>[]
-}
-
-interface FilterConfig {
-  id: string
-  label: string
-  type: 'text' | 'select' | 'date' | 'number'
-  options?: { label: string; value: string }[]
+  contextMenu?: ContextMenuGroup<TData>[]
 }
 
 export function DataTable<TData>({
   data,
   columns,
-  searchable = true,
-  filterable = true,
   title,
-  className,
+  searchable = false,
+  filterable = false,
+  selectable = false,
   onRowClick,
   onFilterApply,
   onClear,
+  onSelectionChange,
+  className,
   spin = false,
   sticky = true,
-  selectable = false,
-  onSelectionChange,
-  rowActions,
+  rowActions = [],
   bulkActions = [],
-  contextMenu,
+  contextMenu = [],
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -209,121 +216,25 @@ export function DataTable<TData>({
   const [columnPinning, setColumnPinning] = useState<ColumnPinningState>({})
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [globalFilter, setGlobalFilter] = useState('')
-  const [filterValues, setFilterValues] = useState<Record<string, any>>({})
-  const [columnResizeMode] = useState<ColumnResizeMode>('onChange')
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({})
+  const [filterValues, setFilterValues] = useState<Record<string, any>>({})
 
-  // Helper function to render context menu content
-  const renderContextMenuContent = (row: Row<TData>) => {
-    if (!contextMenu || contextMenu.length === 0) return null
+  const columnResizeMode: ColumnResizeMode = 'onChange'
 
-    const isGrouped = contextMenu.some((item: any) => 'items' in item)
-    
-    if (isGrouped) {
-      const groups = contextMenu as ContextMenuGroup<TData>[]
-      return (
-        <>
-          {groups.map((group, groupIndex) => {
-            const visibleItems = group.items.filter(item => 
-              !item.hidden || !item.hidden(row.original)
-            )
-            
-            if (visibleItems.length === 0) return null
-            
-            return (
-              <div key={groupIndex}>
-                {group.label && (
-                  <ContextMenuLabel className="text-xs text-muted-foreground">
-                    {group.label}
-                  </ContextMenuLabel>
-                )}
-                {visibleItems.map((item, itemIndex) => {
-                  const Icon = item.icon
-                  const isDisabled = item.disabled?.(row.original) || false
-                  
-                  return (
-                    <ContextMenuItem
-                      key={itemIndex}
-                      onClick={() => !isDisabled && item.onClick(row.original)}
-                      disabled={isDisabled}
-                      className={cn(
-                        "text-xs",
-                        item.variant === 'destructive' && "text-destructive focus:text-destructive-foreground focus:bg-destructive"
-                      )}
-                    >
-                      {Icon && <Icon className="h-3 w-3 mr-2" />}
-                      {item.label}
-                      {item.shortcut && (
-                        <ContextMenuShortcut className="text-xs">
-                          {item.shortcut}
-                        </ContextMenuShortcut>
-                      )}
-                    </ContextMenuItem>
-                  )
-                })}
-                {groupIndex < groups.length - 1 && visibleItems.length > 0 && (
-                  <ContextMenuSeparator />
-                )}
-              </div>
-            )
-          })}
-        </>
-      )
-    } else {
-      const items = contextMenu as ContextMenuItem<TData>[]
-      const visibleItems = items.filter(item => 
-        !item.hidden || !item.hidden(row.original)
-      )
-      
-      return (
-        <>
-          {visibleItems.map((item, index) => {
-            const Icon = item.icon
-            const isDisabled = item.disabled?.(row.original) || false
-            
-            return (
-              <ContextMenuItem
-                key={index}
-                onClick={() => !isDisabled && item.onClick(row.original)}
-                disabled={isDisabled}
-                className={cn(
-                  "text-xs",
-                  item.variant === 'destructive' && "text-destructive focus:text-destructive-foreground focus:bg-destructive"
-                )}
-              >
-                {Icon && <Icon className="h-3 w-3 mr-2" />}
-                {item.label}
-                {item.shortcut && (
-                  <ContextMenuShortcut className="text-xs">
-                    {item.shortcut}
-                  </ContextMenuShortcut>
-                )}
-              </ContextMenuItem>
-            )
-          })}
-        </>
-      )
-    }
-  }
-
-  // Generate filter configs from columns
-  const filterConfigs = useMemo(() => {
+  const filterConfigs: FilterConfig[] = useMemo(() => {
     return columns
-      .filter(col => col.id && col.enableColumnFilter !== false)
+      .filter(col => col.enableColumnFilter && col.accessorKey)
       .map(col => ({
-        id: col.id as string,
-        label: typeof col.header === 'string' ? col.header : col.id as string,
-        type: 'text' as const, // Default to text, can be enhanced
+        id: col.accessorKey as string,
+        label: typeof col.header === 'string' ? col.header : col.accessorKey as string,
       }))
   }, [columns])
 
-  // Create columns with selection and row number columns
   const tableColumns = useMemo(() => {
     const extraColumns: ColumnDef<TData>[] = []
 
-    // Add selection column if selectable
     if (selectable) {
-      const selectionColumn: ColumnDef<TData> = {
+      const selectColumn: ColumnDef<TData> = {
         id: 'select',
         header: ({ table }) => (
           <div className="flex items-center justify-center">
@@ -343,31 +254,28 @@ export function DataTable<TData>({
               checked={row.getIsSelected()}
               onCheckedChange={(value) => row.toggleSelected(!!value)}
               aria-label="Select row"
-              onClick={(e) => e.stopPropagation()}
             />
           </div>
         ),
         enableSorting: false,
         enableHiding: false,
         enableResizing: false,
-        enablePinning: false, // Disable pinning since it's always pinned left
-        size: 44,
-        minSize: 44,
-        maxSize: 44,
+        enablePinning: false,
+        size: 40,
+        minSize: 40,
+        maxSize: 40,
       }
-      extraColumns.push(selectionColumn)
+      extraColumns.push(selectColumn)
     }
 
-    // Add row number column - always present
     const rowNumberColumn: ColumnDef<TData> = {
       id: 'rowNumber',
-      header: 'No.',
+      header: '#',
       cell: ({ row, table }) => {
-        // Get the index from filtered rows to maintain correct numbering after filtering
         const filteredRows = table.getFilteredRowModel().rows
         const index = filteredRows.findIndex(r => r.id === row.id)
         return (
-          <div className="text-center text-muted-foreground font-mono text-xs whitespace-nowrap overflow-hidden text-ellipsis">
+          <div className="text-center text-muted-foreground text-xs font-medium">
             {index + 1}
           </div>
         )
@@ -375,126 +283,68 @@ export function DataTable<TData>({
       enableSorting: false,
       enableHiding: false,
       enableResizing: false,
-      enableColumnFilter: false,
-      enablePinning: false, // Disable pinning since it's always pinned left
+      enablePinning: false,
       size: 50,
       minSize: 50,
       maxSize: 50,
     }
     extraColumns.push(rowNumberColumn)
 
-    // Add row actions column if rowActions are provided
     if (rowActions && rowActions.length > 0) {
       const rowActionsColumn: ColumnDef<TData> = {
         id: 'rowActions',
         header: '',
-        cell: ({ row }) => {
-          const isGrouped = rowActions.some((action: any) => 'actions' in action)
-          
-          if (isGrouped) {
-            const groups = rowActions as RowActionGroup<TData>[]
-            return (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className="h-5 w-5 p-0 hover:bg-muted"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <MoreHorizontal className="h-3 w-3" />
-                    <span className="sr-only">Open menu</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  {groups.map((group, groupIndex) => (
-                    <div key={groupIndex}>
-                      {group.label && (
-                        <DropdownMenuLabel>{group.label}</DropdownMenuLabel>
-                      )}
-                      {group.actions.map((action, actionIndex) => {
-                        const isHidden = action.hidden?.(row.original) || false
-                        const isDisabled = action.disabled?.(row.original) || false
-                        
-                        if (isHidden) return null
-                        
-                        const IconComponent = action.icon
-                        
-                        return (
-                          <DropdownMenuItem
-                            key={actionIndex}
-                            variant={action.variant}
-                            disabled={isDisabled}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              if (!isDisabled) {
-                                action.onClick(row.original)
-                              }
-                            }}
-                            className="cursor-pointer"
-                          >
-                            {IconComponent && <IconComponent className="h-4 w-4" />}
-                            {action.label}
-                          </DropdownMenuItem>
-                        )
-                      })}
-                      {groupIndex < groups.length - 1 && <DropdownMenuSeparator />}
-                    </div>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )
-          } else {
-            const actions = rowActions as RowAction<TData>[]
-            return (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className="h-5 w-5 p-0 hover:bg-muted"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <MoreHorizontal className="h-3 w-3" />
-                    <span className="sr-only">Open menu</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  {actions.map((action, actionIndex) => {
-                    const isHidden = action.hidden?.(row.original) || false
-                    const isDisabled = action.disabled?.(row.original) || false
-                    
-                    if (isHidden) return null
-                    
-                    const IconComponent = action.icon
-                    
-                    return (
-                      <DropdownMenuItem
-                        key={actionIndex}
-                        variant={action.variant}
-                        disabled={isDisabled}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          if (!isDisabled) {
+        cell: ({ row }) => (
+          <div className="flex items-center justify-center">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="h-6 w-6 p-0"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreHorizontal className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                {rowActions.map((group, groupIndex) => (
+                  <div key={groupIndex}>
+                    {groupIndex > 0 && <DropdownMenuSeparator />}
+                    <DropdownMenuLabel className="text-xs">{group.label}</DropdownMenuLabel>
+                    {group.actions.map((action, actionIndex) => {
+                      const isDisabled = action.disabled?.(row.original) || false
+                      const isHidden = action.hidden?.(row.original) || false
+                      
+                      if (isHidden) return null
+                      
+                      const Icon = action.icon
+                      
+                      return (
+                        <DropdownMenuItem
+                          key={actionIndex}
+                          onClick={(e) => {
+                            e.stopPropagation()
                             action.onClick(row.original)
-                          }
-                        }}
-                        className="cursor-pointer"
-                      >
-                        {IconComponent && <IconComponent className="h-4 w-4" />}
-                        {action.label}
-                      </DropdownMenuItem>
-                    )
-                  })}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )
-          }
-        },
+                          }}
+                          disabled={isDisabled}
+                          className={cn(
+                            action.variant === 'destructive' && "text-destructive focus:text-destructive"
+                          )}
+                        >
+                          {Icon && <Icon className="mr-2 h-3 w-3" />}
+                          {action.label}
+                        </DropdownMenuItem>
+                      )
+                    })}
+                  </div>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        ),
         enableSorting: false,
         enableHiding: false,
         enableResizing: false,
-        enableColumnFilter: false,
         enablePinning: true,
         size: 32,
         minSize: 32,
@@ -603,33 +453,67 @@ export function DataTable<TData>({
     }))
   }
 
+  const renderContextMenuContent = (row: Row<TData>) => {
+    if (!contextMenu || contextMenu.length === 0) return null
+
+    return contextMenu.map((group, groupIndex) => (
+      <div key={groupIndex}>
+        {groupIndex > 0 && <ContextMenuSeparator />}
+        <ContextMenuLabel className="text-xs">{group.label}</ContextMenuLabel>
+        {group.items.map((item, itemIndex) => {
+          const isDisabled = item.disabled?.(row.original) || false
+          const isHidden = item.hidden?.(row.original) || false
+          
+          if (isHidden) return null
+          
+          const Icon = item.icon
+          
+          return (
+            <ContextMenuItem
+              key={itemIndex}
+              onClick={() => item.onClick(row.original)}
+              disabled={isDisabled}
+              className={cn(
+                item.variant === 'destructive' && "text-destructive focus:text-destructive"
+              )}
+            >
+              {Icon && <Icon className="mr-2 h-3 w-3" />}
+              {item.label}
+              {item.shortcut && <ContextMenuShortcut>{item.shortcut}</ContextMenuShortcut>}
+            </ContextMenuItem>
+          )
+        })}
+      </div>
+    ))
+  }
+
   return (
     <div className={cn('flex flex-col h-full', className)}>
-      {/* Header Section - Fixed */}
-      <div className="flex items-center justify-between pb-2 flex-shrink-0">
-        <div className="space-y-0.5">
+      {/* Header Section - Responsive Fixed */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 pb-2 flex-shrink-0">
+        <div className="space-y-0.5 flex-shrink-0">
           {title && <h2 className="text-lg font-bold tracking-tight">{title}</h2>}
           <p className="text-xs text-muted-foreground">
-            {table.getFilteredRowModel().rows.length} of {data.length} row(s)
+            <span className="inline-block">{table.getFilteredRowModel().rows.length} of {data.length} row(s)</span>
             {selectable && Object.keys(rowSelection).length > 0 && (
               <span className="ml-2 text-primary">
                 • {Object.keys(rowSelection).filter(key => rowSelection[key]).length} selected
               </span>
             )}
-            {isResizing && <span className="ml-2 text-primary">• Resizing columns...</span>}
+            {isResizing && <span className="ml-2 text-primary block sm:inline">• Resizing columns...</span>}
           </p>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
           {/* Global Search */}
           {searchable && (
-            <div className="relative w-56">
+            <div className="relative w-full sm:w-56">
               <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search all columns..."
                 value={globalFilter}
                 onChange={(e) => setGlobalFilter(e.target.value)}
-                className="pl-7 h-7 text-xs"
+                className="pl-7 h-7 text-xs w-full"
               />
               {globalFilter && (
                 <Button
@@ -644,218 +528,232 @@ export function DataTable<TData>({
             </div>
           )}
 
-          {/* Selection Actions */}
-          {selectable && (
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => table.toggleAllRowsSelected()}
-                className="h-7 text-xs"
-              >
-                {table.getIsAllRowsSelected() ? 'Deselect All' : 'Select All'}
-              </Button>
-              {Object.keys(rowSelection).length > 0 && (
+          {/* Action Controls - Responsive */}
+          <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+            {/* Selection Actions */}
+            {selectable && (
+              <div className="flex items-center gap-1">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setRowSelection({})}
+                  onClick={() => table.toggleAllRowsSelected()}
                   className="h-7 text-xs"
                 >
-                  Clear Selection
+                  <span className="hidden sm:inline">
+                    {table.getIsAllRowsSelected() ? 'Deselect All' : 'Select All'}
+                  </span>
+                  <span className="sm:hidden">
+                    {table.getIsAllRowsSelected() ? 'Deselect' : 'Select'}
+                  </span>
                 </Button>
-              )}
-            </div>
-          )}
+                {Object.keys(rowSelection).length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setRowSelection({})}
+                    className="h-7 text-xs"
+                  >
+                    <span className="hidden sm:inline">Clear Selection</span>
+                    <span className="sm:hidden">Clear</span>
+                  </Button>
+                )}
+              </div>
+            )}
 
-          {/* Column Visibility and Pinning Toggle */}
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="sm" className="h-7 text-xs">
-                <Eye className="h-3 w-3 mr-1" />
-                Columns
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-80">
-              <SheetHeader>
-                <SheetTitle>Column Settings</SheetTitle>
-              </SheetHeader>
-              <div className="space-y-6 pt-4">
-                {/* Selection Controls */}
-                {selectable && Object.keys(rowSelection).length > 0 && (
+            {/* Column Visibility and Pinning Toggle */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 text-xs">
+                  <Eye className="h-3 w-3 mr-1" />
+                  <span className="hidden sm:inline">Columns</span>
+                  <span className="sm:hidden">Cols</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-full sm:w-80 max-w-sm">
+                <SheetHeader>
+                  <SheetTitle>Column Settings</SheetTitle>
+                </SheetHeader>
+                <div className="space-y-6 pt-4 h-full overflow-y-auto">
+                  {/* Selection Controls */}
+                  {selectable && Object.keys(rowSelection).length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-3">Selection</h4>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setRowSelection({})}
+                          className="flex-1"
+                        >
+                          Clear Selection ({Object.keys(rowSelection).filter(key => rowSelection[key]).length})
+                        </Button>
+                      </div>
+                      <Separator className="mt-4" />
+                    </div>
+                  )}
+                  
                   <div>
-                    <h4 className="text-sm font-medium mb-3">Selection</h4>
+                    <h4 className="text-sm font-medium mb-3">Column Visibility</h4>
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      {table.getAllColumns()
+                        .filter(column => column.getCanHide())
+                        .map(column => (
+                          <div key={column.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id={column.id}
+                                checked={column.getIsVisible()}
+                                onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                              />
+                              <Label htmlFor={column.id} className="text-sm font-medium truncate flex-1">
+                                {typeof column.columnDef.header === 'string' 
+                                  ? column.columnDef.header 
+                                  : column.id}
+                              </Label>
+                            </div>
+                            
+                            {/* Pin Controls - Hide for selection and rowNumber columns */}
+                            {column.getIsVisible() && column.getCanPin() && column.id !== 'select' && column.id !== 'rowNumber' && (
+                              <div className="flex items-center gap-1 ml-6 sm:ml-0">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => column.pin('left')}
+                                  title="Pin to left"
+                                  disabled={column.getIsPinned() === 'left'}
+                                >
+                                  <Pin className={cn(
+                                    "h-3 w-3 transition-colors",
+                                    column.getIsPinned() === 'left' ? "text-primary" : "text-muted-foreground"
+                                  )} />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => column.pin(false)}
+                                  title="Unpin"
+                                  disabled={!column.getIsPinned()}
+                                >
+                                  <PinOff className="h-3 w-3 text-muted-foreground" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => column.pin('right')}
+                                  title="Pin to right"
+                                  disabled={column.getIsPinned() === 'right'}
+                                >
+                                  <Pin className={cn(
+                                    "h-3 w-3 transition-colors rotate-90",
+                                    column.getIsPinned() === 'right' ? "text-primary" : "text-muted-foreground"
+                                  )} />
+                                </Button>
+                              </div>
+                            )}
+                            
+                            {/* Selection and row number column indicators */}
+                            {column.id === 'select' && (
+                              <div className="text-xs text-muted-foreground ml-6 sm:ml-0">
+                                Always pinned left
+                              </div>
+                            )}
+                            {column.id === 'rowNumber' && (
+                              <div className="text-xs text-muted-foreground ml-6 sm:ml-0">
+                                Row numbers - pinned left
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                  
+                  {/* Quick Actions */}
+                  <Separator />
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium">Quick Actions</h4>
                     <div className="flex gap-2">
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => setRowSelection({})}
+                        onClick={() => table.resetColumnPinning()}
                         className="flex-1"
                       >
-                        Clear Selection ({Object.keys(rowSelection).filter(key => rowSelection[key]).length})
+                        Unpin All
                       </Button>
                     </div>
-                    <Separator className="mt-4" />
-                  </div>
-                )}
-                
-                <div>
-                  <h4 className="text-sm font-medium mb-3">Column Visibility</h4>
-                  <div className="space-y-3">
-                    {table.getAllColumns()
-                      .filter(column => column.getCanHide())
-                      .map(column => (
-                        <div key={column.id} className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              id={column.id}
-                              checked={column.getIsVisible()}
-                              onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                            />
-                            <Label htmlFor={column.id} className="text-sm font-medium">
-                              {typeof column.columnDef.header === 'string' 
-                                ? column.columnDef.header 
-                                : column.id}
-                            </Label>
-                          </div>
-                          
-                          {/* Pin Controls - Hide for selection and rowNumber columns */}
-                          {column.getIsVisible() && column.getCanPin() && column.id !== 'select' && column.id !== 'rowNumber' && (
-                            <div className="flex items-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0"
-                                onClick={() => column.pin('left')}
-                                title="Pin to left"
-                                disabled={column.getIsPinned() === 'left'}
-                              >
-                                <Pin className={cn(
-                                  "h-3 w-3 transition-colors",
-                                  column.getIsPinned() === 'left' ? "text-primary" : "text-muted-foreground"
-                                )} />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0"
-                                onClick={() => column.pin(false)}
-                                title="Unpin"
-                                disabled={!column.getIsPinned()}
-                              >
-                                <PinOff className="h-3 w-3 text-muted-foreground" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0"
-                                onClick={() => column.pin('right')}
-                                title="Pin to right"
-                                disabled={column.getIsPinned() === 'right'}
-                              >
-                                <Pin className={cn(
-                                  "h-3 w-3 transition-colors rotate-90",
-                                  column.getIsPinned() === 'right' ? "text-primary" : "text-muted-foreground"
-                                )} />
-                              </Button>
-                            </div>
-                          )}
-                          
-                          {/* Selection and row number column indicators */}
-                          {column.id === 'select' && (
-                            <div className="text-xs text-muted-foreground">
-                              Always pinned left
-                            </div>
-                          )}
-                          {column.id === 'rowNumber' && (
-                            <div className="text-xs text-muted-foreground">
-                              Row numbers - pinned left
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                  </div>
-                </div>
-                
-                {/* Quick Actions */}
-                <Separator />
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium">Quick Actions</h4>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => table.resetColumnPinning()}
-                      className="flex-1"
-                    >
-                      Unpin All
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </SheetContent>
-          </Sheet>
-
-          {/* Filter Sidebar */}
-          {filterable && filterConfigs.length > 0 && (
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="h-7 text-xs">
-                  <Filter className="h-3 w-3 mr-1" />
-                  Filters
-                  {columnFilters.length > 0 && (
-                    <span className="ml-1 rounded-full bg-primary px-1.5 py-0.5 text-xs text-primary-foreground">
-                      {columnFilters.length}
-                    </span>
-                  )}
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-80">
-                <SheetHeader>
-                  <SheetTitle>Filter Data</SheetTitle>
-                </SheetHeader>
-                
-                <div className="space-y-6 pt-6">
-                  {filterConfigs.map((config) => (
-                    <div key={config.id} className="space-y-2">
-                      <Label htmlFor={config.id} className="text-sm font-medium">
-                        {config.label}
-                      </Label>
-                      <Input
-                        id={config.id}
-                        placeholder={`Filter by ${config.label.toLowerCase()}...`}
-                        value={filterValues[config.id] || ''}
-                        onChange={(e) => handleFilterChange(config.id, e.target.value)}
-                      />
-                    </div>
-                  ))}
-                  
-                  <Separator />
-                  
-                  <div className="flex gap-2">
-                    <Button onClick={handleApplyFilters} className="flex-1">
-                      Apply Filters
-                    </Button>
-                    <Button variant="outline" onClick={handleClearFilters} className="flex-1">
-                      Clear All
-                    </Button>
                   </div>
                 </div>
               </SheetContent>
             </Sheet>
-          )}
+
+            {/* Filter Sidebar */}
+            {filterable && filterConfigs.length > 0 && (
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-7 text-xs">
+                    <Filter className="h-3 w-3 mr-1" />
+                    <span className="hidden sm:inline">Filters</span>
+                    <span className="sm:hidden">Filter</span>
+                    {columnFilters.length > 0 && (
+                      <span className="ml-1 rounded-full bg-primary px-1.5 py-0.5 text-xs text-primary-foreground">
+                        {columnFilters.length}
+                      </span>
+                    )}
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-full sm:w-80 max-w-sm">
+                  <SheetHeader>
+                    <SheetTitle>Filter Data</SheetTitle>
+                  </SheetHeader>
+                  
+                  <div className="space-y-6 pt-6 h-full overflow-y-auto">
+                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                      {filterConfigs.map((config) => (
+                        <div key={config.id} className="space-y-2">
+                          <Label htmlFor={config.id} className="text-sm font-medium">
+                            {config.label}
+                          </Label>
+                          <Input
+                            id={config.id}
+                            placeholder={`Filter by ${config.label.toLowerCase()}...`}
+                            value={filterValues[config.id] || ''}
+                            onChange={(e) => handleFilterChange(config.id, e.target.value)}
+                            className="w-full"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <Separator />
+                    
+                    <div className="flex flex-col gap-2">
+                      <Button onClick={handleApplyFilters} className="w-full">
+                        Apply Filters
+                      </Button>
+                      <Button variant="outline" onClick={handleClearFilters} className="w-full">
+                        Clear All
+                      </Button>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Bulk Actions Toolbar */}
+      {/* Bulk Actions Toolbar - Responsive */}
       {selectable && bulkActions.length > 0 && selectedRowsData.length > 0 && (
-        <div className="flex items-center justify-between px-4 py-2 bg-primary/5 border border-primary/20 rounded-md mb-2 flex-shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 py-2 bg-primary/5 border border-primary/20 rounded-md mb-2 flex-shrink-0">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-primary">
               {selectedRowsData.length} row{selectedRowsData.length !== 1 ? 's' : ''} selected
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {bulkActions.map((action, index) => {
               const Icon = action.icon
               const isDisabled = action.disabled?.(selectedRowsData) || false
@@ -880,7 +778,8 @@ export function DataTable<TData>({
                   className="h-7 text-xs"
                 >
                   {Icon && <Icon className="h-3 w-3 mr-1" />}
-                  {action.label}
+                  <span className="hidden sm:inline">{action.label}</span>
+                  <span className="sm:hidden">{action.label.split(' ')[0]}</span>
                 </Button>
               )
             })}
@@ -889,6 +788,7 @@ export function DataTable<TData>({
               size="sm"
               onClick={() => setRowSelection({})}
               className="h-7 text-xs"
+              title="Clear selection"
             >
               <X className="h-3 w-3" />
             </Button>
@@ -896,9 +796,9 @@ export function DataTable<TData>({
         </div>
       )}
 
-      {/* Table Container - Scrollable */}
+      {/* Table Container - Responsive Scrollable */}
       <div className="flex-1 rounded-md border overflow-hidden relative">
-        <div className="h-full overflow-auto" style={{ isolation: 'isolate' }}>
+        <div className="h-full overflow-auto table-scroll" style={{ isolation: 'isolate' }}>
           {spin && (
             <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
               <div className="flex items-center gap-3 text-muted-foreground">
@@ -908,9 +808,10 @@ export function DataTable<TData>({
             </div>
           )}
           <table 
-            className="relative w-full"
+            className="relative w-full table-responsive-small md:table-responsive-medium"
             style={{
-              width: table.getTotalSize(),
+              width: Math.max(table.getTotalSize(), 100),
+              minWidth: '100%',
               isolation: 'isolate',
             }}
           >
@@ -948,130 +849,43 @@ export function DataTable<TData>({
                         }}
                       >
                         <div className={cn(
-                          "flex items-center gap-2 h-full",
+                          "flex items-center whitespace-nowrap overflow-hidden text-ellipsis",
+                          header.column.getCanSort() ? "cursor-pointer select-none" : "",
                           header.column.id === 'select' && "justify-center",
                           header.column.id === 'rowNumber' && "justify-center"
-                        )}>
-                          {header.isPlaceholder ? null : (
-                            <div
-                              className={cn(
-                                'flex items-center gap-2 cursor-pointer select-none flex-1 min-w-0',
-                                header.column.getCanSort() && 'hover:text-foreground',
-                                header.column.id === 'select' && 'justify-center',
-                                header.column.id === 'rowNumber' && 'justify-center'
-                              )}
-                              onClick={header.column.getToggleSortingHandler()}
-                            >
-                              <span className="truncate">
-                                {flexRender(header.column.columnDef.header, header.getContext())}
-                              </span>
-                              {header.column.getCanSort() && (
-                                <div className="flex flex-col flex-shrink-0">
-                                  <ChevronUp 
-                                    className={cn(
-                                      'h-2 w-2 transition-colors',
-                                      header.column.getIsSorted() === 'asc' 
-                                        ? 'text-foreground' 
-                                        : 'text-muted-foreground/50'
-                                    )} 
-                                  />
-                                  <ChevronDown 
-                                    className={cn(
-                                      'h-2 w-2 -mt-0.5 transition-colors',
-                                      header.column.getIsSorted() === 'desc' 
-                                        ? 'text-foreground' 
-                                        : 'text-muted-foreground/50'
-                                    )} 
-                                  />
-                                </div>
-                              )}
+                        )}
+                        onClick={header.column.getToggleSortingHandler()}
+                        onDoubleClick={() => {
+                          if (header.column.getCanResize()) {
+                            header.column.resetSize()
+                          }
+                        }}
+                        >
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(header.column.columnDef.header, header.getContext())
+                          }
+                          {header.column.getCanSort() && (
+                            <div className="ml-1 flex-shrink-0">
+                              {{
+                                asc: <ChevronUp className="h-3 w-3" />,
+                                desc: <ChevronDown className="h-3 w-3" />,
+                              }[header.column.getIsSorted() as string] ?? <div className="h-3 w-3" />}
                             </div>
-                          )}
-                          
-                          {/* Pin indicator - Hide for selection and row number columns */}
-                          {isPinned && header.column.id !== 'select' && header.column.id !== 'rowNumber' && (
-                            <Pin className={cn(
-                              "h-2 w-2 text-primary flex-shrink-0",
-                              isPinned === 'right' && "rotate-90"
-                            )} />
                           )}
                         </div>
                         
-                        {/* Column Resizer */}
+                        {/* Resizing Handle */}
                         {header.column.getCanResize() && (
                           <div
-                            className="absolute right-0 top-0 h-full w-2 cursor-col-resize bg-transparent hover:bg-primary/20 active:bg-primary/40 transition-all duration-150"
-                            style={{
-                              transform: header.column.getIsResizing() ? 'scaleX(1.5)' : undefined,
-                              userSelect: 'none',
-                              touchAction: 'none',
-                            }}
+                            className={cn(
+                              "absolute top-0 right-0 w-1 h-full cursor-col-resize select-none group-hover:bg-primary/50 transition-colors",
+                              header.column.getIsResizing() && "bg-primary"
+                            )}
                             onMouseDown={header.getResizeHandler()}
                             onTouchStart={header.getResizeHandler()}
-                            onDoubleClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              
-                              // Auto-fit column width to content
-                              const column = header.column
-                              const columnId = column.id
-                              
-                              // Calculate the maximum content width for this column
-                              let maxWidth = 40 // minimum width
-                              
-                              // Check header text width
-                              const headerText = typeof column.columnDef.header === 'string' 
-                                ? column.columnDef.header 
-                                : columnId
-                              maxWidth = Math.max(maxWidth, headerText.length * 6 + 40) // approximate char width + padding
-                              
-                              // Check all visible row content widths
-                              const rows = table.getFilteredRowModel().rows
-                              rows.forEach(row => {
-                                const cell = row.getVisibleCells().find(c => c.column.id === columnId)
-                                if (cell) {
-                                  let cellText = ''
-                                  
-                                  // Get text content from cell
-                                  const cellValue = cell.getValue()
-                                  if (typeof cellValue === 'string') {
-                                    cellText = cellValue
-                                  } else if (typeof cellValue === 'number') {
-                                    cellText = cellValue.toString()
-                                  } else if (cellValue && typeof cellValue === 'object') {
-                                    cellText = JSON.stringify(cellValue)
-                                  }
-                                  
-                                  // Handle special cells like badges or formatted dates
-                                  if (columnId === 'status') {
-                                    cellText = cellValue as string || ''
-                                  } else if (columnId === 'joinDate') {
-                                    cellText = new Date(cellValue as string).toLocaleDateString()
-                                  } else if (columnId === 'rowNumber') {
-                                    cellText = '999' // assume max 3 digits for numbering
-                                  }
-                                  
-                                  const contentWidth = cellText.length * 6 + 20 // approximate char width + padding
-                                  maxWidth = Math.max(maxWidth, contentWidth)
-                                }
-                              })
-                              
-                              // Apply size constraints from column definition
-                              const minSize = column.columnDef.minSize || 40
-                              const maxSize = column.columnDef.maxSize || 600
-                              const finalWidth = Math.min(Math.max(maxWidth, minSize), maxSize)
-                              
-                              // Update column sizing using the table's setter
-                              setColumnSizing(prev => ({
-                                ...prev,
-                                [columnId]: finalWidth
-                              }))
-                            }}
-                            title="Drag to resize • Double-click to auto-fit"
-                          >
-                            {/* Visual indicator for resize handle */}
-                            <div className="absolute right-0.5 top-1/2 transform -translate-y-1/2 w-0.5 h-4 bg-border/60 group-hover:bg-primary/60 transition-colors" />
-                          </div>
+                            onDoubleClick={() => header.column.resetSize()}
+                          />
                         )}
                       </th>
                     )
@@ -1085,18 +899,17 @@ export function DataTable<TData>({
                   const RowComponent = (
                     <tr
                       key={row.id}
-                      data-state={row.getIsSelected() && 'selected'}
+                      data-state={row.getIsSelected() && "selected"}
                       className={cn(
-                        'group border-b transition-colors',
-                        // Base hover state for the entire row
-                        'hover:bg-muted/30',
-                        onRowClick && 'cursor-pointer',
-                        'data-[state=selected]:bg-muted'
+                        "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted group h-6",
+                        selectable && "cursor-pointer"
                       )}
                       onClick={(e) => {
-                        // Don't trigger row click if clicking on checkbox or action buttons
-                        if (e.target instanceof HTMLElement && 
-                            (e.target.closest('[role="checkbox"]') || 
+                        // Prevent row click if clicking on interactive elements
+                        if ((e.target as HTMLElement)?.closest('button') || 
+                            (e.target as HTMLElement)?.closest('a') ||
+                            (e.target as HTMLElement)?.closest('[role="checkbox"]') ||
+                            ((e.target as HTMLElement)?.tagName === 'INPUT' && 
                              e.target.closest('button') || 
                              e.target.closest('a'))) {
                           return
@@ -1154,7 +967,7 @@ export function DataTable<TData>({
                               }
                             }}
                           >
-                            <div className="truncate text-xs leading-none whitespace-nowrap overflow-hidden text-ellipsis">
+                            <div className="truncate text-xs leading-none whitespace-nowrap overflow-hidden text-ellipsis table-cell">
                               {flexRender(cell.column.columnDef.cell, cell.getContext())}
                             </div>
                           </td>

@@ -135,7 +135,8 @@ function App() {
       enableResizing: true,
       enablePinning: true,
       size: 120,
-      minSize: 80,
+      minSize: 100,
+      maxSize: 200,
     },
     {
       id: 'email',
@@ -145,8 +146,9 @@ function App() {
       enableColumnFilter: true,
       enableResizing: true,
       enablePinning: true,
-      size: 160,
-      minSize: 120,
+      size: 180,
+      minSize: 150,
+      maxSize: 250,
     },
     {
       id: 'role',
@@ -156,8 +158,9 @@ function App() {
       enableColumnFilter: true,
       enableResizing: true,
       enablePinning: true,
-      size: 110,
-      minSize: 90,
+      size: 130,
+      minSize: 100,
+      maxSize: 180,
     },
     {
       id: 'department',
@@ -167,8 +170,9 @@ function App() {
       enableColumnFilter: true,
       enableResizing: true,
       enablePinning: true,
-      size: 90,
-      minSize: 80,
+      size: 120,
+      minSize: 100,
+      maxSize: 160,
     },
     {
       id: 'status',
@@ -178,8 +182,9 @@ function App() {
       enableColumnFilter: true,
       enableResizing: true,
       enablePinning: true,
-      size: 70,
+      size: 80,
       minSize: 70,
+      maxSize: 100,
       cell: ({ getValue }) => {
         const status = getValue() as string
         return (
@@ -204,8 +209,9 @@ function App() {
       enableColumnFilter: true,
       enableResizing: true,
       enablePinning: true,
-      size: 90,
-      minSize: 80,
+      size: 100,
+      minSize: 90,
+      maxSize: 120,
       cell: ({ getValue }) => {
         const date = getValue() as string
         return new Date(date).toLocaleDateString()
@@ -480,23 +486,23 @@ function App() {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
-      {/* Header */}
+      {/* Header - Responsive */}
       <header className="bg-primary text-primary-foreground px-4 py-2 shadow-sm flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+          <div className="flex-shrink-0">
             <h1 className="text-lg font-semibold">Advanced Data Table</h1>
             <p className="text-primary-foreground/80 text-xs">
               Manage and analyze your data with powerful filtering and sorting
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={simulateLoading}
                 disabled={isLoading}
-                className="text-xs h-7"
+                className="text-xs h-7 w-full sm:w-auto"
               >
                 {isLoading ? 'Loading...' : 'Simulate Loading'}
               </Button>
@@ -506,12 +512,12 @@ function App() {
                   checked={stickyHeader}
                   onCheckedChange={setStickyHeader}
                 />
-                <Label htmlFor="sticky-toggle" className="text-xs">
+                <Label htmlFor="sticky-toggle" className="text-xs whitespace-nowrap">
                   Sticky Header
                 </Label>
               </div>
             </div>
-            <span className="text-xs text-primary-foreground/80">
+            <span className="text-xs text-primary-foreground/80 whitespace-nowrap">
               {sampleUsers.length} total users
             </span>
           </div>
