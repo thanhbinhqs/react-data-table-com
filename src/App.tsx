@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { Eye, PencilSimple, Trash, UserCheck, UserX, Copy, Users, Shield, Archive, Download, Clipboard, Phone, EnvelopeSimple } from '@phosphor-icons/react'
+import { Eye, Edit, Trash2, UserCheck, UserX, Copy, Users, Shield, Archive, Download, Clipboard, Phone, Mail } from 'lucide-react'
 
 interface User {
   id: string
@@ -233,7 +233,7 @@ function App() {
         },
         {
           label: 'Edit User',
-          icon: PencilSimple,
+          icon: Edit,
           onClick: (user) => {
             alert(`Edit user: ${user.name}`)
           },
@@ -269,7 +269,7 @@ function App() {
         },
         {
           label: 'Delete User',
-          icon: Trash,
+          icon: Trash2,
           variant: 'destructive',
           onClick: (user) => {
             if (confirm(`Are you sure you want to delete ${user.name}?`)) {
@@ -353,7 +353,7 @@ function App() {
     },
     {
       label: 'Delete Selected',
-      icon: Trash,
+      icon: Trash2,
       variant: 'destructive',
       onClick: (users) => {
         alert(`Deleted ${users.length} user${users.length !== 1 ? 's' : ''}`)
@@ -378,7 +378,7 @@ function App() {
         },
         {
           label: 'Edit User',
-          icon: PencilSimple,
+          icon: Edit,
           onClick: (user) => {
             alert(`Edit user: ${user.name}`)
           },
@@ -386,7 +386,7 @@ function App() {
         },
         {
           label: 'Copy Email',
-          icon: EnvelopeSimple,
+          icon: Mail,
           onClick: (user) => {
             navigator.clipboard.writeText(user.email)
             alert(`Copied email: ${user.email}`)
@@ -400,7 +400,7 @@ function App() {
       items: [
         {
           label: 'Send Email',
-          icon: EnvelopeSimple,
+          icon: Mail,
           onClick: (user) => {
             window.open(`mailto:${user.email}`)
           },
@@ -447,7 +447,7 @@ function App() {
         },
         {
           label: 'Delete User',
-          icon: Trash,
+          icon: Trash2,
           variant: 'destructive',
           onClick: (user) => {
             if (confirm(`Are you sure you want to delete ${user.name}?`)) {

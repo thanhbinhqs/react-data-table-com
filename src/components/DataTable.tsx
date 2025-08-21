@@ -89,19 +89,19 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { 
-  CaretUp, 
-  CaretDown, 
-  FunnelSimple, 
-  MagnifyingGlass, 
+  ChevronUp, 
+  ChevronDown, 
+  Filter, 
+  Search, 
   X,
   Eye,
-  EyeSlash,
-  ArrowsOutCardinal,
-  PushPin,
-  PushPinSlash,
-  CircleNotch,
-  DotsThree
-} from '@phosphor-icons/react'
+  EyeOff,
+  Maximize2,
+  Pin,
+  PinOff,
+  Loader2,
+  MoreHorizontal
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { 
   DropdownMenu,
@@ -402,7 +402,7 @@ export function DataTable<TData>({
                     className="h-5 w-5 p-0 hover:bg-muted"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <DotsThree className="h-3 w-3" />
+                    <MoreHorizontal className="h-3 w-3" />
                     <span className="sr-only">Open menu</span>
                   </Button>
                 </DropdownMenuTrigger>
@@ -455,7 +455,7 @@ export function DataTable<TData>({
                     className="h-5 w-5 p-0 hover:bg-muted"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <DotsThree className="h-3 w-3" />
+                    <MoreHorizontal className="h-3 w-3" />
                     <span className="sr-only">Open menu</span>
                   </Button>
                 </DropdownMenuTrigger>
@@ -624,7 +624,7 @@ export function DataTable<TData>({
           {/* Global Search */}
           {searchable && (
             <div className="relative w-56">
-              <MagnifyingGlass className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search all columns..."
                 value={globalFilter}
@@ -730,7 +730,7 @@ export function DataTable<TData>({
                                 title="Pin to left"
                                 disabled={column.getIsPinned() === 'left'}
                               >
-                                <PushPin className={cn(
+                                <Pin className={cn(
                                   "h-3 w-3 transition-colors",
                                   column.getIsPinned() === 'left' ? "text-primary" : "text-muted-foreground"
                                 )} />
@@ -743,7 +743,7 @@ export function DataTable<TData>({
                                 title="Unpin"
                                 disabled={!column.getIsPinned()}
                               >
-                                <PushPinSlash className="h-3 w-3 text-muted-foreground" />
+                                <PinSlash className="h-3 w-3 text-muted-foreground" />
                               </Button>
                               <Button
                                 variant="ghost"
@@ -753,7 +753,7 @@ export function DataTable<TData>({
                                 title="Pin to right"
                                 disabled={column.getIsPinned() === 'right'}
                               >
-                                <PushPin className={cn(
+                                <Pin className={cn(
                                   "h-3 w-3 transition-colors rotate-90",
                                   column.getIsPinned() === 'right' ? "text-primary" : "text-muted-foreground"
                                 )} />
@@ -801,7 +801,7 @@ export function DataTable<TData>({
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="outline" size="sm" className="h-7 text-xs">
-                  <FunnelSimple className="h-3 w-3 mr-1" />
+                  <Filter className="h-3 w-3 mr-1" />
                   Filters
                   {columnFilters.length > 0 && (
                     <span className="ml-1 rounded-full bg-primary px-1.5 py-0.5 text-xs text-primary-foreground">
@@ -902,7 +902,7 @@ export function DataTable<TData>({
           {spin && (
             <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
               <div className="flex items-center gap-3 text-muted-foreground">
-                <CircleNotch className="h-6 w-6 animate-spin" />
+                <Loader2 className="h-6 w-6 animate-spin" />
                 <span className="text-sm font-medium">Loading...</span>
               </div>
             </div>
@@ -967,7 +967,7 @@ export function DataTable<TData>({
                               </span>
                               {header.column.getCanSort() && (
                                 <div className="flex flex-col flex-shrink-0">
-                                  <CaretUp 
+                                  <ChevronUp 
                                     className={cn(
                                       'h-2 w-2 transition-colors',
                                       header.column.getIsSorted() === 'asc' 
@@ -975,7 +975,7 @@ export function DataTable<TData>({
                                         : 'text-muted-foreground/50'
                                     )} 
                                   />
-                                  <CaretDown 
+                                  <ChevronDown 
                                     className={cn(
                                       'h-2 w-2 -mt-0.5 transition-colors',
                                       header.column.getIsSorted() === 'desc' 
@@ -990,7 +990,7 @@ export function DataTable<TData>({
                           
                           {/* Pin indicator - Hide for selection and row number columns */}
                           {isPinned && header.column.id !== 'select' && header.column.id !== 'rowNumber' && (
-                            <PushPin className={cn(
+                            <Pin className={cn(
                               "h-2 w-2 text-primary flex-shrink-0",
                               isPinned === 'right' && "rotate-90"
                             )} />
